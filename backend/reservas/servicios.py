@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from instalaciones.models import Cancha, Sede
+from notificaciones.models import Notificacion
 from usuarios.models import Usuario
 
 from .disponibilidad import consultar_disponibilidad
@@ -42,7 +43,9 @@ def crear_reserva(actor, organizador_id, cancha_id, fecha, hora, precio, observa
     evento = Evento.objects.create(
         turno=turno, tipo=Evento.Tipo.RESERVA, registrado_por=actor, observaciones=observaciones
     )
-    return Reserva.objects.create(evento=evento, organizador=organizador, importe=precio)
+    reserva = Reserva.objects.create(evento=evento, organizador=organizador, importe=precio)
+    Notificacion.objects.create(reserva=reserva, tipo=Notificacion.Tipo.RESERVA_CREADA)
+    return reserva
 
 
 @transaction.atomic
@@ -66,4 +69,5 @@ def cancelar_reserva(actor, reserva_id, motivo):
     ])
     evento.turno = turno
     reserva.evento = evento
+    Notificacion.objects.create(reserva=reserva, tipo=Notificacion.Tipo.RESERVA_ANULADA)
     return reserva

@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.urls import path
 from django.views.decorators.http import require_safe
 from instalaciones.views import listar_sedes
+from notificaciones import views as notificaciones
 from reservas import views as reservas
 from usuarios import views as usuarios
 
@@ -16,6 +17,9 @@ def estado_api(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/estado/", estado_api),
+    path("api/notificaciones/", notificaciones.listar),
+    path("api/notificaciones/<int:notificacion_id>/leer/", notificaciones.leer),
+    path("api/notificaciones/leer-todas/", notificaciones.leer_todas),
     path("api/sedes/", listar_sedes),
     path("api/agenda/", bloqueos.agenda),
     path("api/bloqueos/", bloqueos.crear),
