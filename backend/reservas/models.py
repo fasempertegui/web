@@ -123,3 +123,16 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"Evento {self.pk}"
+
+
+class Reserva(models.Model):
+    evento = models.OneToOneField(Evento, on_delete=models.PROTECT, related_name="reserva")
+    organizador = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="reservas"
+    )
+    importe = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(importe__gt=0), name="reserva_importe_positivo"),
+        ]
