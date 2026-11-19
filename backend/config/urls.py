@@ -19,6 +19,8 @@ urlpatterns = [
     path("api/sedes/", listar_sedes),
     path("api/agenda/", bloqueos.agenda),
     path("api/bloqueos/", bloqueos.crear),
+    path("api/bloqueos/masivos/vista-previa/", bloqueos.previsualizar_masivos),
+    path("api/bloqueos/masivos/confirmar/", bloqueos.confirmar_masivos),
     path("api/bloqueos/<int:bloqueo_id>/liberar/", bloqueos.liberar),
     path("api/canchas/<int:cancha_id>/disponibilidad/", reservas.disponibilidad),
     path("api/reservas/", reservas.reservas),

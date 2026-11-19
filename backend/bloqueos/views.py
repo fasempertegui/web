@@ -1,3 +1,5 @@
+import json
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
@@ -10,6 +12,8 @@ from reservas.models import Evento
 from reservas.servicios import ConflictoReserva
 from usuarios.views import datos_json, errores_formulario
 
+from .forms import OperacionMasivaForm
+from .masivos import confirmar_operacion, preparar_operacion
 from .models import Bloqueo
 from .servicios import crear_bloqueo, liberar_bloqueo
 
@@ -117,3 +121,39 @@ def liberar(request, bloqueo_id):
     except ConflictoReserva as error:
         return JsonResponse({"error": error.messages[0]}, status=409)
     return JsonResponse({"bloqueo_id": bloqueo_id, "estado": Evento.Estado.ANULADO})
+
+
+@require_POST
+def previsualizar_masivos(request):
+    if not request.user.is_superuser:
+        return acceso_denegado()
+    try:
+        datos = json.loads(request.body)
+    except ValueError:
+        datos = None
+    if not isinstance(datos, dict):
+        return JsonResponse({"error": "Se esperaba un objeto JSON."}, status=400)
+    form = OperacionMasivaForm(datos)
+    if not form.is_valid():
+        return errores_formulario(form)
+    try:
+        return JsonResponse(preparar_operacion(request.user, form.cleaned_data))
+    except Sede.DoesNotExist:
+        return JsonResponse({"error": "La sede no existe."}, status=404)
+    except ValidationError as error:
+        return JsonResponse({"error": error.messages[0]}, status=400)
+
+
+@require_POST
+def confirmar_masivos(request):
+    if not request.user.is_superuser:
+        return acceso_denegado()
+    datos = datos_json(request)
+    if not datos or not datos.get("confirmacion"):
+        return JsonResponse({"error": "Ingresá el código de confirmación."}, status=400)
+    try:
+        return JsonResponse(confirmar_operacion(request.user, datos["confirmacion"]))
+    except Sede.DoesNotExist:
+        return JsonResponse({"error": "La sede no existe."}, status=404)
+    except ValidationError as error:
+        return JsonResponse({"error": error.messages[0]}, status=409)
