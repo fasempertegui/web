@@ -7,6 +7,7 @@ import { NuevaReserva } from './NuevaReserva.jsx'
 import { MisReservas } from "./MisReservas.jsx"
 import { Notificaciones } from './Notificaciones.jsx'
 import { Perfil } from "./Perfil.jsx"
+import { Usuarios } from './Usuarios.jsx'
 import { Registro } from './Registro.jsx'
 import './styles.css'
 
@@ -109,6 +110,16 @@ function App() {
     }
   }
 
+  function actualizarCuenta(cuenta, accion) {
+    if (cuenta.id !== usuario.id) return
+    if (accion === 'contrasena') {
+      setUsuario(null)
+      setSinLeer(0)
+    } else {
+      setUsuario(cuenta)
+    }
+  }
+
   if (usuario === undefined) return <main className="espera" role="status">Cargando sesión…</main>
   if (!usuario) return ruta === '/registro'
     ? <MarcoAcceso registro><Registro /></MarcoAcceso>
@@ -125,6 +136,8 @@ function App() {
             Notificaciones{sinLeer > 0 && <span className="contador-avisos" aria-label={`${sinLeer} sin leer`}>{sinLeer}</span>}
           </Link>
           <Link to="/perfil" aria-current={location.pathname === "/perfil" ? "page" : undefined}>Perfil</Link>
+          {usuario.es_administrador && <Link to="/usuarios"
+            aria-current={ruta === '/usuarios' ? 'page' : undefined}>Usuarios</Link>}
           <span>{usuario.nombre || usuario.nombre_usuario}</span>
           <button type="button" onClick={cerrar}>Salir</button>
         </div>
@@ -137,6 +150,8 @@ function App() {
       <Route path="/mis-reservas" element={<MisReservas />} />
       <Route path="/notificaciones" element={<Notificaciones alCargar={setSinLeer} />} />
       <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
+      {usuario.es_administrador && <Route path="/usuarios"
+        element={<Usuarios alGuardar={actualizarCuenta} />} />}
       <Route path="*" element={<Navigate to="/agenda" replace />} />
     </Routes>
   </>

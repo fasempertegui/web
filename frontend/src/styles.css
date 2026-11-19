@@ -267,3 +267,11 @@ button:disabled { cursor: default; opacity: .55; }
 @media (max-width: 400px) {
   .campos-registro { grid-template-columns: minmax(0, 1fr); }
 }
+
+.lista-reservas .estado-busqueda { margin-top: .8rem; }
+.fila-usuario { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); overflow-wrap: anywhere; }
+.campos-contrasena { display: grid; gap: .65rem; }
+.detalle .error { margin-top: .65rem; }
+@media (max-width: 520px) {
+  .fila-usuario { grid-template-columns: minmax(0, 1fr); }
+}
