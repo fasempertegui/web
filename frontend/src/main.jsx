@@ -5,6 +5,7 @@ import { api } from './api.js'
 import { Agenda } from './Agenda.jsx'
 import { NuevaReserva } from './NuevaReserva.jsx'
 import { MisReservas } from "./MisReservas.jsx"
+import { Perfil } from "./Perfil.jsx"
 import './styles.css'
 
 function Marca() {
@@ -92,6 +93,7 @@ function App() {
         <Link to={agenda} aria-label="Academia TM, agenda"><Marca /></Link>
         <div className="barra-cuenta">
           <Link to="/mis-reservas" aria-current={location.pathname === "/mis-reservas" ? "page" : undefined}>Mis reservas</Link>
+          <Link to="/perfil" aria-current={location.pathname === "/perfil" ? "page" : undefined}>Perfil</Link>
           <span>{usuario.nombre || usuario.nombre_usuario}</span>
           <button type="button" onClick={cerrar}>Salir</button>
         </div>
@@ -102,6 +104,7 @@ function App() {
       <Route path="/agenda" element={<Agenda usuario={usuario} />} />
       <Route path="/agenda/nueva-reserva" element={<NuevaReserva usuario={usuario} />} />
       <Route path="/mis-reservas" element={<MisReservas />} />
+      <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
       <Route path="*" element={<Navigate to="/agenda" replace />} />
     </Routes>
   </>
