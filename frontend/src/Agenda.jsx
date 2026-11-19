@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
+import { AccionesAgenda } from './AccionesAgenda.jsx'
 import { BloqueoTurno, motivosBloqueo } from './BloqueoTurno.jsx'
 import { desplazarFecha, fechaValida, horaActual, hoy, importe, labelFecha } from './fechas.js'
 
@@ -67,6 +68,7 @@ export function Agenda({ usuario }) {
   const [errorSedes, setErrorSedes] = useState('')
   const [consulta, setConsulta] = useState(null)
   const [aviso, setAviso] = useState(null)
+  const [alcance, setAlcance] = useState(null)
   const celdaActiva = useRef(null)
   const fecha = fechaValida(params.get('fecha')) ? params.get('fecha') : hoy()
   const sede = sedes?.find(item => String(item.id) === params.get('sede')) || sedes?.[0]
@@ -131,10 +133,12 @@ export function Agenda({ usuario }) {
   }
 
   function cambiarVista(nuevaSede, nuevaFecha) {
+    setAlcance(null)
     setParams({ sede: nuevaSede, fecha: nuevaFecha })
   }
 
   function seleccionar(id, inicio) {
+    setAlcance(null)
     setParams({ ...Object.fromEntries(nuevoParams), cancha: id, hora: inicio }, { replace: true })
   }
 
@@ -142,6 +146,25 @@ export function Agenda({ usuario }) {
     setParams(nuevoParams, { replace: true })
     celdaActiva.current?.focus()
   }
+
+  function abrirAcciones(periodo) {
+    setParams(nuevoParams, { replace: true })
+    setAlcance({ periodo, llave })
+  }
+
+  async function actualizarLote(cantidad) {
+    const mensaje = cantidad === 1 ? 'Se actualizó 1 turno.' : `Se actualizaron ${cantidad} turnos.`
+    setAlcance(actual => actual?.llave === llave ? null : actual)
+    setAviso({ llave, mensaje })
+    try {
+      const columnasActualizadas = await consultarAgenda(sede, fecha, administrador)
+      setConsulta(actual => actual?.llave === llave ? { llave, columnas: columnasActualizadas } : actual)
+    } catch (fallo) {
+      setAviso({ llave, mensaje: mensaje + ' No se pudo actualizar la agenda. ' + fallo.message, error: true })
+    }
+  }
+
+  const periodo = alcance?.llave === llave ? alcance.periodo : null
 
   function reservarDisponible() {
     return turno && !turno.tipo && fecha >= hoy() && fecha <= desplazarFecha(hoy(), 3)
@@ -151,9 +174,16 @@ export function Agenda({ usuario }) {
   return <main className="pagina" onKeyDown={evento => {
     if (evento.key === 'Escape' && turno) cerrarDetalle()
   }}>
-    <header className="encabezado">
-      <h1>Agenda</h1>
-      <p>{administrador ? 'Consultá las reservas y los bloqueos de cada cancha.' : 'Elegí un turno para consultar su disponibilidad.'}</p>
+    <header className="encabezado encabezado-agenda">
+      <div><h1>Agenda</h1>
+      <p>{administrador ? 'Consultá las reservas y los bloqueos de cada cancha.' : 'Elegí un turno para consultar su disponibilidad.'}</p></div>
+      {administrador && sede?.canchas.length > 0 && <div className="controles-agenda">
+        {fecha >= hoy() && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
+          <button type="button" className="primario" aria-pressed={periodo === 'dia'}
+            onClick={() => abrirAcciones('dia')}>Acciones del día</button>}
+        <button type="button" aria-pressed={periodo === 'mes'}
+          onClick={() => abrirAcciones('mes')}>Acciones del mes</button>
+      </div>}
     </header>
     {errorSedes && <p className="error" role="alert">{errorSedes}</p>}
     {sedes === null && !errorSedes && <p role="status">Cargando sedes…</p>}
@@ -187,10 +217,11 @@ export function Agenda({ usuario }) {
       {!activa && <p role="status">Cargando agenda…</p>}
       {activa?.error && <p className="error" role="alert">{activa.error}</p>}
       {activa?.columnas && columnas.length === 0 && <p className="tarjeta vacio">La sede todavía no tiene canchas activas.</p>}
-      {columnas.length > 0 && visibles.length === 0 && <p className="tarjeta vacio">
+      {columnas.length > 0 && visibles.length === 0 && !periodo && <p className="tarjeta vacio">
         {fecha < hoy() && !administrador ? 'No tenés reservas en esta fecha.' : 'No hay turnos para mostrar en esta fecha.'}
       </p>}
-      {visibles.length > 0 && <div className="agenda-cuerpo">
+      {(visibles.length > 0 || periodo) && <div className="agenda-cuerpo">
+        {visibles.length === 0 ? <p className="tarjeta vacio">No hay turnos para mostrar en esta fecha.</p> :
         <div className="tarjeta grilla">
           <table aria-label={'Turnos de ' + sede.nombre}>
             <thead><tr><th scope="col">Hora</th>
@@ -224,9 +255,10 @@ export function Agenda({ usuario }) {
               </React.Fragment>
             })}</tbody>
           </table>
-        </div>
-        <aside className="tarjeta detalle" aria-label="Detalle del turno">
-          {turno ? <>
+        </div>}
+        <aside className="tarjeta detalle" aria-label={periodo ? "Acciones de agenda" : "Detalle del turno"}>
+          {periodo ? <AccionesAgenda key={`${llave}:${periodo}`} sede={sede} fecha={fecha}
+            alcance={periodo} cerrar={() => setAlcance(null)} alConfirmar={actualizarLote} /> : turno ? <>
             <div className="turno-resumen">
               <span>{estadoTurno(turno)}</span>
               <button type="button" aria-label="Cerrar detalle" onClick={cerrarDetalle}>×</button>
