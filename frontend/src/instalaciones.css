@@ -1,0 +1,74 @@
+@layer components {
+  .instalaciones-superficie, .instalaciones-editor {
+    font-family: "DM Sans Variable", "Segoe UI", sans-serif;
+  }
+
+  .instalaciones-superficie {
+    min-height: calc(100svh - 4rem);
+    background: radial-gradient(ellipse at 15% 0%, #ede2f7, transparent 36rem), #f9f7fb;
+  }
+
+  .instalaciones-contenido {
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: clamp(1rem, 2.5vw, 2.25rem);
+  }
+
+  .instalaciones-titulo {
+    font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
+    letter-spacing: -.035em;
+  }
+
+  .instalaciones-sede { background: linear-gradient(135deg, #653087, #34104e); }
+
+  .instalaciones-grid { display: grid; align-items: start; gap: 1rem; }
+
+  .instalaciones-icono {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: .75rem;
+    background: #f0e9f5;
+    color: #602783;
+  }
+
+  .instalaciones-icono svg { width: 1.15rem; height: 1.15rem; }
+
+  .instalaciones-horario {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, .65fr) minmax(0, 1.35fr) 1rem;
+    align-items: center;
+    gap: .65rem;
+    width: 100%;
+    min-height: 3.25rem;
+    padding: .75rem 1rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #231b2e;
+    text-align: left;
+  }
+
+  .instalaciones-horario:hover { background: #f8f3fa; }
+  .instalaciones-horario:focus-visible { outline-offset: -3px; }
+
+  .instalaciones-confirmacion {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .7rem .85rem;
+    border: 1px solid #b9dbc9;
+    border-radius: .6rem;
+    background: #eef8f3;
+    color: #225b47;
+    font-size: .9rem;
+  }
+
+  .instalaciones-confirmacion svg { width: 1rem; flex-shrink: 0; }
+
+  @media (min-width: 65rem) {
+    .instalaciones-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+  }
+}

@@ -6,11 +6,11 @@ import { api } from './api.js'
 import { NuevaReserva } from './NuevaReserva.jsx'
 import { Perfil } from "./Perfil.jsx"
 import { Usuarios } from './Usuarios.jsx'
-import { Instalaciones } from './Instalaciones.jsx'
 import { Registro } from './Registro.jsx'
 import './tema.css'
 
 const Agenda = lazy(() => import('./Agenda.jsx'))
+const Instalaciones = lazy(() => import('./Instalaciones.jsx'))
 const Notificaciones = lazy(() => import('./Notificaciones.jsx'))
 const MisReservas = lazy(() => import('./MisReservas.jsx'))
 const NavegacionAdmin = lazy(() => import('./NavegacionAdmin.jsx'))
@@ -147,7 +147,9 @@ function App() {
       <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
       {usuario.es_administrador && <Route path="/usuarios"
         element={<Usuarios alGuardar={actualizarCuenta} />} />}
-      {usuario.es_administrador && <Route path="/instalaciones" element={<Instalaciones />} />}
+      {usuario.es_administrador && <Route path="/instalaciones" element={<Suspense fallback={<main className="espera" role="status">Cargando instalaciones…</main>}>
+        <Instalaciones />
+      </Suspense>} />}
       <Route path="*" element={<Navigate to="/agenda" replace />} />
     </Routes>
   </>
