@@ -17,9 +17,7 @@ import { CierreMalTiempo } from './CierreMalTiempo.jsx'
 import { HistorialTurno } from './HistorialTurno.jsx'
 import { AccionesAgenda } from './AccionesAgenda.jsx'
 import { AccionesTurno, etiquetasBloqueo } from './AccionesTurno.jsx'
-import { desplazarFecha, fechaValida, hoy, importe, labelFecha } from './fechas.js'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
+import { desplazarFecha, fechaValida, finDeMes, hoy, importe, labelFecha } from './fechas.js'
 import './agenda.css'
 
 const inicioOperaciones = '2026-08-01'
@@ -40,7 +38,8 @@ export default function Agenda({ usuario }) {
   const botonAcciones = useRef(null)
   const menuAbrePanel = useRef(false)
   const movil = useIsMobile(1024)
-  const fecha = fechaValida(params.get('fecha')) ? params.get('fecha') : hoy()
+  const fechaHoy = hoy()
+  const fecha = fechaValida(params.get('fecha')) ? params.get('fecha') : fechaHoy
   const sede = sedes?.find(item => String(item.id) === params.get('sede')) || sedes?.[0]
   const llave = sede ? `${sede.id}:${fecha}` : ''
   const administrador = usuario.es_administrador
@@ -72,17 +71,16 @@ export default function Agenda({ usuario }) {
   const columna = columnas.find(item => String(item.cancha.id) === canchaId)
   const turno = columna?.turnos.find(item => item.hora_inicio === hora)
   const visibles = [...new Set(columnas.flatMap(item => item.turnos.map(t => t.hora_inicio)))].sort()
-  const maximo = desplazarFecha(hoy(), 365)
+  const maximo = desplazarFecha(fechaHoy, 365)
+  const limiteBloqueo = finDeMes(fechaHoy, 2)
   const nuevoParams = new URLSearchParams({ sede: sede?.id || '', fecha })
 
   const turnoFuturo = turno && !turno.iniciado
-  const limiteBloqueo = new Date(hoy() + 'T12:00:00Z')
-  limiteBloqueo.setUTCMonth(limiteBloqueo.getUTCMonth() + 3, 0)
   const puedeCancelarReserva = administrador && turnoFuturo &&
     turno.tipo === 'reserva' && turno.estado === 'programado'
   const puedeGestionarBloqueo = administrador && turnoFuturo && (
     (turno.tipo === 'bloqueo' && turno.estado === 'programado') ||
-    (turno.en_horario && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
+    (turno.en_horario && fecha <= limiteBloqueo &&
       (!turno.tipo || (turno.tipo === 'reserva' && turno.estado === 'programado')))
   )
 
@@ -207,7 +205,7 @@ export default function Agenda({ usuario }) {
               if (menuAbrePanel.current) evento.preventDefault()
               menuAbrePanel.current = false
             }}>
-            {sede.canchas.length > 0 && fecha >= hoy() && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
+            {sede.canchas.length > 0 && fecha >= fechaHoy && fecha <= limiteBloqueo &&
               <DropdownMenuItem onSelect={() => abrirAcciones('dia')}>
                 <CalendarDays aria-hidden="true" /> Acciones del día
               </DropdownMenuItem>}
@@ -246,7 +244,7 @@ export default function Agenda({ usuario }) {
           : <Card className="agenda-estado-vacio border-border gap-2 p-6 shadow-none">
             <h2 className="agenda-titulo">{labelFecha(fecha)}</h2>
             <p>{columnas.length === 0 ? 'La sede todavía no tiene canchas activas.'
-              : fecha < hoy() && !administrador ? 'No tenés reservas en esta fecha.'
+              : fecha < fechaHoy && !administrador ? 'No tenés reservas en esta fecha.'
               : 'No hay turnos para mostrar en esta fecha.'}</p>
           </Card>}
 

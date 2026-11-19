@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { api } from './api.js'
-import { horaActual, hoy, labelFecha } from './fechas.js'
+import { diaSemanaISO, horaActual, hoy, labelFecha, proximosMeses } from './fechas.js'
 import { motivosBloqueo } from './AccionesTurno.jsx'
 
 const etiquetas = {
@@ -15,24 +15,13 @@ const etiquetas = {
   seleccionado_para_conservar: 'Marcado para conservar',
 }
 
-const nombreMes = new Intl.DateTimeFormat('es-AR', {
-  month: 'long', year: 'numeric', timeZone: 'UTC',
-})
-
-function mesesDisponibles() {
-  const inicio = new Date(hoy().slice(0, 7) + '-01T12:00:00Z')
-  return [0, 1, 2].map(indice => {
-    const mes = new Date(inicio)
-    mes.setUTCMonth(inicio.getUTCMonth() + indice)
-    return { valor: mes.toISOString().slice(0, 7), etiqueta: nombreMes.format(mes) }
-  })
-}
-
 function horasDisponibles(sede, fecha, mensual) {
-  const dia = new Date(fecha + 'T12:00:00Z').getUTCDay() || 7
+  const dia = diaSemanaISO(fecha)
   const horarios = mensual ? sede.horarios : sede.horarios.filter(item => item.dia_semana === dia)
   const inicios = new Set()
   const fines = new Set()
+  const fechaHoy = hoy()
+  const horaAhora = horaActual()
   for (const horario of horarios) {
     for (const [desde, hasta] of [
       [horario.hora_inicio_1, horario.hora_fin_1], [horario.hora_inicio_2, horario.hora_fin_2],
@@ -40,7 +29,7 @@ function horasDisponibles(sede, fecha, mensual) {
       if (!desde || !hasta) continue
       for (let hora = Number(desde.slice(0, 2)); hora < Number(hasta.slice(0, 2)); hora++) {
         const inicio = String(hora).padStart(2, '0') + ':00'
-        if (mensual || fecha !== hoy() || inicio > horaActual()) {
+        if (mensual || fecha !== fechaHoy || inicio > horaAhora) {
           inicios.add(inicio)
           fines.add(String(hora + 1).padStart(2, '0') + ':00')
         }
@@ -68,7 +57,7 @@ function GrupoRevision({ titulo, filas, sede }) {
 
 export function AccionesAgenda({ sede, fecha, alcance, cerrar, alConfirmar }) {
   const mensual = alcance === 'mes'
-  const meses = mesesDisponibles()
+  const meses = proximosMeses(3)
   const mesInicial = meses.find(mes => mes.valor === fecha.slice(0, 7))?.valor || meses[0].valor
   const [operacion, setOperacion] = useState(mensual ? 'liberar' : 'bloquear')
   const [seleccionarCanchas, setSeleccionarCanchas] = useState(false)

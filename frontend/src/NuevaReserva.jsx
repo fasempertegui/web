@@ -51,7 +51,7 @@ function BuscarOrganizador({ organizador, elegir }) {
   </section>
 }
 
-export function NuevaReserva({ usuario }) {
+export default function NuevaReserva({ usuario }) {
   const [params] = useSearchParams()
   const volver = '/agenda?' + params.toString()
   const navegar = useNavigate()

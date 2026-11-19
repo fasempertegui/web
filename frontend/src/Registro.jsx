@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { api } from './api.js'
 import { hoy } from './fechas.js'
 
-export function Registro() {
+export default function Registro() {
   const location = useLocation()
   const destino = location.state?.volver || '/agenda'
   const [nombreUsuario, setNombreUsuario] = useState('')
@@ -18,7 +18,6 @@ export function Registro() {
       return
     }
     try {
-      await api('sesion/')
       const cuenta = await api('registro/', { datos })
       setNombreUsuario(cuenta.nombre_usuario)
     } catch (fallo) {

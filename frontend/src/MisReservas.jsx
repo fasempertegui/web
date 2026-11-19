@@ -12,9 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { api } from './api.js'
-import { horaActual, hoy, importe, labelFecha } from './fechas.js'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
+import { horaActual, hoy, importe, labelFecha, labelMesCorto } from './fechas.js'
 import './mis-reservas.css'
 
 const estados = {
@@ -22,8 +20,6 @@ const estados = {
   anulado: 'Cancelada',
   finalizado: 'Finalizada',
 }
-
-const mesAnio = new Intl.DateTimeFormat('es-AR', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 function EstadoReserva({ estado }) {
   return <Badge variant="outline" data-estado={estado}
@@ -41,7 +37,7 @@ function ListaReservas({ reservas, seleccion, seleccionar, guardando, mensajeVac
         disabled={guardando} onClick={evento => seleccionar(reserva.id, evento.currentTarget)}>
         <time className="mis-reservas-fecha" dateTime={reserva.fecha} aria-label={labelFecha(reserva.fecha)}>
           <strong>{reserva.fecha.slice(-2)}</strong>
-          <small>{mesAnio.format(new Date(reserva.fecha + 'T12:00:00Z'))}</small>
+          <small>{labelMesCorto(reserva.fecha)}</small>
         </time>
         <span className="mis-reservas-cancha">
           <strong>{reserva.cancha}</strong>

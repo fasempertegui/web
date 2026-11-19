@@ -8,8 +8,6 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
 import './navegacion-admin.css'
 
 const grupos = [

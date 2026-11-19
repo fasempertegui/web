@@ -13,8 +13,6 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHe
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from './api.js'
 import { importe } from './fechas.js'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
 import './instalaciones.css'
 
 const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']

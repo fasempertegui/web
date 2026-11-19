@@ -12,8 +12,6 @@ import {
 } from '@/components/ui/sheet'
 import { api } from './api.js'
 import { hoy, labelFecha } from './fechas.js'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
 import './perfil.css'
 
 function DatoPerfil({ icono: Icono, etiqueta, valor }) {
@@ -28,7 +26,7 @@ function DatoPerfil({ icono: Icono, etiqueta, valor }) {
   </div>
 }
 
-export function Perfil({ usuario, alGuardar }) {
+export default function Perfil({ usuario, alGuardar }) {
   const [editando, setEditando] = useState(false)
   const { register, handleSubmit, reset, formState: { isSubmitting: guardando } } = useForm()
   const [error, setError] = useState('')

@@ -6,13 +6,8 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from './api.js'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
+import { labelFechaHora } from './fechas.js'
 import './notificaciones.css'
-
-const fechaAviso = new Intl.DateTimeFormat('es-AR', {
-  dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Argentina/Salta',
-})
 
 const tipos = {
   reserva_creada: { titulo: 'Reserva confirmada', Icono: CalendarCheck },
@@ -38,7 +33,7 @@ function FilaAviso({ aviso, abrir, ocupado }) {
         <strong>{titulo}</strong>
         <span>{aviso.mensaje}</span>
       </span>
-      <time dateTime={aviso.creado_en}>{fechaAviso.format(new Date(aviso.creado_en))}</time>
+      <time dateTime={aviso.creado_en}>{labelFechaHora(aviso.creado_en)}</time>
       <span className="notificacion-indicador">
         {!aviso.leida_en && <><span className="notificacion-punto" aria-hidden="true" /><span className="sr-only">Sin leer</span></>}
         <ChevronRight className="notificacion-flecha" aria-hidden="true" />

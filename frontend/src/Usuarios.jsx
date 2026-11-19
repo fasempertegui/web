@@ -11,8 +11,6 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { api } from './api.js'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
 import './usuarios.css'
 
 function nombreCompleto(usuario) {

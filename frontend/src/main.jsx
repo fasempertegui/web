@@ -2,19 +2,28 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import '@fontsource-variable/bricolage-grotesque'
+import '@fontsource-variable/dm-sans'
 import { api } from './api.js'
-import { NuevaReserva } from './NuevaReserva.jsx'
-import { Perfil } from "./Perfil.jsx"
-import { Registro } from './Registro.jsx'
 import './tema.css'
 
 const Agenda = lazy(() => import('./Agenda.jsx'))
+const NuevaReserva = lazy(() => import('./NuevaReserva.jsx'))
+const MisReservas = lazy(() => import('./MisReservas.jsx'))
+const Notificaciones = lazy(() => import('./Notificaciones.jsx'))
+const Perfil = lazy(() => import('./Perfil.jsx'))
 const Usuarios = lazy(() => import('./Usuarios.jsx'))
 const Instalaciones = lazy(() => import('./Instalaciones.jsx'))
-const Notificaciones = lazy(() => import('./Notificaciones.jsx'))
-const MisReservas = lazy(() => import('./MisReservas.jsx'))
+const Registro = lazy(() => import('./Registro.jsx'))
 const NavegacionAdmin = lazy(() => import('./NavegacionAdmin.jsx'))
 const NavegacionUsuario = lazy(() => import('./NavegacionUsuario.jsx'))
+
+function VistaDiferida({ mensaje, inline = false, children }) {
+  const espera = inline
+    ? <p className="espera" role="status">{mensaje}</p>
+    : <main className="espera" role="status">{mensaje}</main>
+  return <Suspense fallback={espera}>{children}</Suspense>
+}
 
 function Marca() {
   return <span className="marca"><img src="/logo.png" alt="" />Academia TM</span>
@@ -100,7 +109,6 @@ function App() {
 
   async function iniciar(datos) {
     setErrorSesion('')
-    await api('sesion/')
     const sesion = await api('sesion/iniciar/', { datos })
     setUsuario(sesion.usuario)
   }
@@ -128,47 +136,52 @@ function App() {
 
   if (usuario === undefined) return <main className="espera" role="status">Cargando sesión…</main>
   if (!usuario) return ruta === '/registro'
-    ? <MarcoAcceso registro><Registro /></MarcoAcceso>
+    ? <MarcoAcceso registro>
+      <VistaDiferida mensaje="Cargando registro…" inline><Registro /></VistaDiferida>
+    </MarcoAcceso>
     : <Acceso iniciar={iniciar} errorSesion={errorSesion} />
 
   const agenda = '/agenda' + (enAgenda ? location.search : busquedaAgenda.current)
   const contenido = <>
     {errorSesion && <p className="error" role="alert">{errorSesion}</p>}
     <Routes>
-      <Route path="/agenda" element={<Suspense fallback={<main className="espera" role="status">Cargando agenda…</main>}>
+      <Route path="/agenda" element={<VistaDiferida mensaje="Cargando agenda…">
         <Agenda usuario={usuario} />
-      </Suspense>} />
-      <Route path="/agenda/nueva-reserva" element={<NuevaReserva usuario={usuario} />} />
-      <Route path="/mis-reservas" element={<Suspense fallback={<main className="espera" role="status">Cargando reservas…</main>}>
+      </VistaDiferida>} />
+      <Route path="/agenda/nueva-reserva" element={<VistaDiferida mensaje="Cargando reserva…">
+        <NuevaReserva usuario={usuario} />
+      </VistaDiferida>} />
+      <Route path="/mis-reservas" element={<VistaDiferida mensaje="Cargando reservas…">
         <MisReservas />
-      </Suspense>} />
-      <Route path="/notificaciones" element={<Suspense fallback={<main className="espera" role="status">Cargando notificaciones…</main>}>
+      </VistaDiferida>} />
+      <Route path="/notificaciones" element={<VistaDiferida mensaje="Cargando notificaciones…">
         <Notificaciones alCargar={setSinLeer} />
-      </Suspense>} />
-      <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
-      {usuario.es_administrador && <Route path="/usuarios"
-        element={<Suspense fallback={<main className="espera" role="status">Cargando usuarios…</main>}>
-          <Usuarios alGuardar={actualizarCuenta} />
-        </Suspense>} />}
-      {usuario.es_administrador && <Route path="/instalaciones" element={<Suspense fallback={<main className="espera" role="status">Cargando instalaciones…</main>}>
+      </VistaDiferida>} />
+      <Route path="/perfil" element={<VistaDiferida mensaje="Cargando perfil…">
+        <Perfil usuario={usuario} alGuardar={setUsuario} />
+      </VistaDiferida>} />
+      {usuario.es_administrador && <Route path="/usuarios" element={<VistaDiferida mensaje="Cargando usuarios…">
+        <Usuarios alGuardar={actualizarCuenta} />
+      </VistaDiferida>} />}
+      {usuario.es_administrador && <Route path="/instalaciones" element={<VistaDiferida mensaje="Cargando instalaciones…">
         <Instalaciones />
-      </Suspense>} />}
+      </VistaDiferida>} />}
       <Route path="*" element={<Navigate to="/agenda" replace />} />
     </Routes>
   </>
 
   if (usuario.es_administrador) {
-    return <Suspense fallback={<main className="espera" role="status">Cargando administración…</main>}>
+    return <VistaDiferida mensaje="Cargando administración…">
       <NavegacionAdmin agenda={agenda} usuario={usuario} sinLeer={sinLeer} cerrar={cerrar}>
         {contenido}
       </NavegacionAdmin>
-    </Suspense>
+    </VistaDiferida>
   }
 
-  return <Suspense fallback={<main className="espera" role="status">Cargando el portal…</main>}>
+  return <VistaDiferida mensaje="Cargando el portal…">
     <NavegacionUsuario agenda={agenda} usuario={usuario} sinLeer={sinLeer} cerrar={cerrar} />
     {contenido}
-  </Suspense>
+  </VistaDiferida>
 }
 
 createRoot(document.querySelector('#root')).render(<BrowserRouter><App /></BrowserRouter>)

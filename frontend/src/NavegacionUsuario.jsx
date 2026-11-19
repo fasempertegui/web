@@ -8,8 +8,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import '@fontsource-variable/bricolage-grotesque'
-import '@fontsource-variable/dm-sans'
 import './navegacion-usuario.css'
 
 export default function NavegacionUsuario({ agenda, usuario, sinLeer, cerrar }) {
