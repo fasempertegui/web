@@ -184,3 +184,6 @@ button:disabled { cursor: default; opacity: .55; }
   .fila-reserva { grid-template-columns: 1fr auto; }
   .fila-reserva > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
 }
+
+.formulario-bloqueo label + label { margin-top: .65rem; }
+.formulario-bloqueo p { font-size: .9rem; }

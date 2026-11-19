@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
+import { BloqueoTurno, motivosBloqueo } from './BloqueoTurno.jsx'
 import { desplazarFecha, fechaValida, horaActual, hoy, importe, labelFecha } from './fechas.js'
 
 const inicioOperaciones = '2026-08-01'
-const motivos = { clima_adverso: 'Clima adverso', torneo: 'Torneo', mantenimiento: 'Mantenimiento' }
 
 function horariosSede(sede, fecha) {
   const dia = new Date(fecha + 'T12:00:00Z').getUTCDay() || 7
@@ -66,6 +66,7 @@ export function Agenda({ usuario }) {
   const [sedes, setSedes] = useState(null)
   const [errorSedes, setErrorSedes] = useState('')
   const [consulta, setConsulta] = useState(null)
+  const [aviso, setAviso] = useState(null)
   const celdaActiva = useRef(null)
   const fecha = fechaValida(params.get('fecha')) ? params.get('fecha') : hoy()
   const sede = sedes?.find(item => String(item.id) === params.get('sede')) || sedes?.[0]
@@ -104,6 +105,30 @@ export function Agenda({ usuario }) {
   )
   const maximo = desplazarFecha(hoy(), 365)
   const nuevoParams = new URLSearchParams({ sede: sede?.id || '', fecha })
+
+  const turnoFuturo = turno && (fecha > hoy() || (fecha === hoy() && hora > horaActual()))
+  const limiteBloqueo = new Date(hoy() + 'T12:00:00Z')
+  limiteBloqueo.setUTCMonth(limiteBloqueo.getUTCMonth() + 3, 0)
+  const enHorario = sede && horariosSede(sede, fecha).some(item => item.hora_inicio === hora)
+  const puedeGestionarBloqueo = administrador && turnoFuturo && (
+    (turno.tipo === 'bloqueo' && turno.estado === 'programado') ||
+    (enHorario && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
+      (!turno.tipo || (turno.tipo === 'reserva' && turno.estado === 'programado')))
+  )
+
+  async function actualizarTurno(mensaje) {
+    setAviso({ llave, mensaje })
+    try {
+      const datos = await api(`agenda/?cancha_id=${canchaId}&fecha=${fecha}`)
+      setConsulta(actual => actual?.llave === llave ? {
+        ...actual,
+        columnas: actual.columnas.map(item => String(item.cancha.id) === canchaId
+          ? { ...item, turnos: datos.turnos } : item),
+      } : actual)
+    } catch (fallo) {
+      setAviso({ llave, mensaje: mensaje + ' No se pudo actualizar la agenda. ' + fallo.message, error: true })
+    }
+  }
 
   function cambiarVista(nuevaSede, nuevaFecha) {
     setParams({ sede: nuevaSede, fecha: nuevaFecha })
@@ -157,6 +182,8 @@ export function Agenda({ usuario }) {
         </div>
       </section>
       <h2 className="fecha-agenda">{labelFecha(fecha)}</h2>
+      {aviso?.llave === llave && <p className={aviso.error ? 'error' : 'reserva-mensaje'}
+        role={aviso.error ? 'alert' : 'status'}>{aviso.mensaje}</p>}
       {!activa && <p role="status">Cargando agenda…</p>}
       {activa?.error && <p className="error" role="alert">{activa.error}</p>}
       {activa?.columnas && columnas.length === 0 && <p className="tarjeta vacio">La sede todavía no tiene canchas activas.</p>}
@@ -189,7 +216,7 @@ export function Agenda({ usuario }) {
                         aria-pressed={seleccionada} onClick={() => seleccionar(cancha.id, inicio)}>
                         <span>{estadoTurno(celda)}</span>
                         {celda.organizador && <small>{celda.organizador}</small>}
-                        {motivos[celda.motivo] && <small>{motivos[celda.motivo]}</small>}
+                        {motivosBloqueo[celda.motivo] && <small>{motivosBloqueo[celda.motivo]}</small>}
                       </button> : <span className="sin-turno" aria-label="Sin turno">—</span>}
                     </td>
                   })}
@@ -208,10 +235,13 @@ export function Agenda({ usuario }) {
             </div>
             {turno.organizador && <p>{turno.organizador}</p>}
             {turno.importe && <p>{importe(turno.importe)}</p>}
-            {turno.motivo && <p>{motivos[turno.motivo]}</p>}
+            {turno.motivo && <p>{motivosBloqueo[turno.motivo]}</p>}
             {turno.observaciones && <p>{turno.observaciones}</p>}
             {reservarDisponible() && <Link className="primario accion"
               to={'/agenda/nueva-reserva?' + params.toString()}>Nueva reserva</Link>}
+            {puedeGestionarBloqueo && <BloqueoTurno
+              key={`${llave}:${canchaId}:${hora}:${turno.evento_id}`}
+              turno={turno} canchaId={canchaId} fecha={fecha} alGuardar={actualizarTurno} />}
           </> : <>
             <h3>Elegí un turno</h3>
             <p>Seleccioná una celda para consultar su detalle.</p>
