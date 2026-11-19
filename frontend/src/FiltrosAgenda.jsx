@@ -5,6 +5,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { desplazarFecha, hoy, labelFecha } from './fechas.js'
@@ -21,11 +22,11 @@ export function FiltrosAgenda({ sedes, sede, fecha, minimo, maximo, cambiarVista
 
   const cambiarDia = nuevoDia => cambiarVista(sede.id, nuevoDia)
 
-  return <Card role="region" aria-label="Filtros de agenda" className="flex-row flex-wrap items-end gap-x-6 gap-y-4 px-4 py-4 shadow-none">
+  return <Card role="region" aria-label="Filtros de agenda" className="agenda-filtros border-border flex-row flex-wrap items-end gap-x-5 gap-y-3 rounded-2xl px-4 py-3.5 shadow-none sm:px-5">
     <div className="grid gap-2">
-      <label htmlFor="sede-agenda">Sede</label>
+      <Label className="text-muted-foreground" htmlFor="sede-agenda">Sede</Label>
       <Select value={String(sede.id)} onValueChange={id => cambiarVista(id, fecha)}>
-        <SelectTrigger id="sede-agenda" className="w-full min-w-40 bg-card text-foreground">
+        <SelectTrigger id="sede-agenda" className="w-full min-w-44 bg-card text-foreground data-[size=default]:h-10">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -34,15 +35,15 @@ export function FiltrosAgenda({ sedes, sede, fecha, minimo, maximo, cambiarVista
       </Select>
     </div>
     <div className="grid gap-2">
-      <label htmlFor="fecha-agenda">Fecha</label>
-      <div className="flex flex-wrap items-center gap-1">
-        <Button type="button" variant="outline" size="icon" aria-label="Día anterior"
+      <Label className="text-muted-foreground" htmlFor="fecha-agenda">Fecha</Label>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Button type="button" variant="outline" size="icon" className="size-10" aria-label="Día anterior"
           disabled={fecha <= minimo} onClick={() => cambiarDia(desplazarFecha(fecha, -1))}>
           <ChevronLeft aria-hidden="true" />
         </Button>
         <Popover open={calendarioAbierto} onOpenChange={setCalendarioAbierto}>
           <PopoverTrigger asChild>
-            <Button id="fecha-agenda" type="button" variant="outline" className="min-w-32"
+            <Button id="fecha-agenda" type="button" variant="outline" className="h-10 min-w-32 tabular-nums"
               aria-label={`Elegir fecha: ${labelFecha(fecha)}`}>
               <CalendarDays aria-hidden="true" />
               {fecha.split('-').reverse().join('/')}
@@ -61,11 +62,11 @@ export function FiltrosAgenda({ sedes, sede, fecha, minimo, maximo, cambiarVista
               }} />
           </PopoverContent>
         </Popover>
-        <Button type="button" variant="outline" size="icon" aria-label="Día siguiente"
+        <Button type="button" variant="outline" size="icon" className="size-10" aria-label="Día siguiente"
           disabled={fecha >= maximo} onClick={() => cambiarDia(desplazarFecha(fecha, 1))}>
           <ChevronRight aria-hidden="true" />
         </Button>
-        <Button type="button" variant="secondary" onClick={() => cambiarDia(hoy())}>Hoy</Button>
+        <Button type="button" variant="secondary" className="h-10" onClick={() => cambiarDia(hoy())}>Hoy</Button>
       </div>
     </div>
   </Card>

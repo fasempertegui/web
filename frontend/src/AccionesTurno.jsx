@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { Ban, LockOpen, XCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useForm } from 'react-hook-form'
 import { api } from './api.js'
 
@@ -49,11 +51,12 @@ export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCanc
   }
 
   if (!operacion) return <>
-    {puedeCancelar && <button type="button" className="accion"
-      onClick={() => setOperacion('cancelar')}>Cancelar reserva</button>}
-    {puedeBloquear && <button type="button" className="accion" onClick={() => {
+    {puedeCancelar && <Button type="button" variant="outline" className="agenda-accion-turno"
+      onClick={() => setOperacion('cancelar')}><XCircle aria-hidden="true" />Cancelar reserva</Button>}
+    {puedeBloquear && <Button type="button" variant="outline" className="agenda-accion-turno" onClick={() => {
       setOperacion(turno.tipo === 'bloqueo' ? 'liberar' : 'bloquear')
-    }}>{turno.tipo === 'bloqueo' ? 'Liberar bloqueo' : tituloBloqueo}</button>}
+    }}>{turno.tipo === 'bloqueo' ? <><LockOpen aria-hidden="true" />Liberar bloqueo</>
+      : <><Ban aria-hidden="true" />{tituloBloqueo}</>}</Button>}
   </>
 
   return <form className="formulario-bloqueo" onSubmit={handleSubmit(confirmar)}>
