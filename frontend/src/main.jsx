@@ -7,13 +7,28 @@ import { NuevaReserva } from './NuevaReserva.jsx'
 import { MisReservas } from "./MisReservas.jsx"
 import { Notificaciones } from './Notificaciones.jsx'
 import { Perfil } from "./Perfil.jsx"
+import { Registro } from './Registro.jsx'
 import './styles.css'
 
 function Marca() {
   return <span className="marca"><img src="/logo.png" alt="" />Academia TM</span>
 }
 
+function MarcoAcceso({ children, registro = false }) {
+  return <main className="acceso">
+    <header><Marca /></header>
+    <div className={registro ? 'acceso-contenido acceso-registro' : 'acceso-contenido'}>
+      <section className="portada">
+        <h1>Tu próximo encuentro<br /> te está esperando<span>.</span></h1>
+        <p>Consultá la agenda y reservá tu cancha.</p>
+      </section>
+      {children}
+    </div>
+  </main>
+}
+
 function Acceso({ iniciar, errorSesion }) {
+  const location = useLocation()
   const [error, setError] = useState('')
   const [ocupado, setOcupado] = useState(false)
 
@@ -31,22 +46,18 @@ function Acceso({ iniciar, errorSesion }) {
     }
   }
 
-  return <main className="acceso">
-    <header><Marca /></header>
-    <div className="acceso-contenido">
-      <section className="portada">
-        <h1>Tu próximo encuentro<br /> te está esperando<span>.</span></h1>
-        <p>Consultá la agenda y reservá tu cancha.</p>
-      </section>
+  return <MarcoAcceso>
       <form className="tarjeta acceso-form" onSubmit={enviar}>
         <h2>Iniciar sesión</h2>
-        <label>Usuario<input required name="nombre_usuario" autoComplete="username" /></label>
+        <label>Usuario<input required name="nombre_usuario" autoComplete="username"
+          defaultValue={location.state?.nombreUsuario || ""} /></label>
         <label>Contraseña<input required name="contrasena" type="password" autoComplete="current-password" /></label>
         {(error || errorSesion) && <p className="error" role="alert">{error || errorSesion}</p>}
         <button className="primario" disabled={ocupado}>{ocupado ? 'Ingresando…' : 'Ingresar'}</button>
+        <Link className="enlace-acceso" to="/registro"
+          state={{ volver: location.pathname + location.search }}>Crear una cuenta</Link>
       </form>
-    </div>
-  </main>
+  </MarcoAcceso>
 }
 
 function App() {
@@ -99,7 +110,9 @@ function App() {
   }
 
   if (usuario === undefined) return <main className="espera" role="status">Cargando sesión…</main>
-  if (!usuario) return <Acceso iniciar={iniciar} errorSesion={errorSesion} />
+  if (!usuario) return ruta === '/registro'
+    ? <MarcoAcceso registro><Registro /></MarcoAcceso>
+    : <Acceso iniciar={iniciar} errorSesion={errorSesion} />
 
   const agenda = '/agenda' + location.search
   return <>

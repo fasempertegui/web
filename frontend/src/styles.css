@@ -240,3 +240,30 @@ button:disabled { cursor: default; opacity: .55; }
 .aviso-titulo { display: flex; gap: .6rem; align-items: center; justify-content: space-between; }
 .aviso-titulo small { color: var(--morado); background: var(--lavanda); border-radius: 1rem; padding: .2rem .5rem; }
 .paginas-avisos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-top: 1rem; }
+
+.enlace-acceso {
+  display: inline-block;
+  margin-top: 1rem;
+  font-size: .9rem;
+  font-weight: 650;
+}
+.acceso-registro { grid-template-columns: minmax(0, 1fr) minmax(400px, 460px); }
+.campos-registro {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .9rem;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.campos-registro label { margin: 0; }
+.registro-correo { grid-column: 1 / -1; }
+.registro-form .error { margin: 1rem 0 0; }
+
+@media (max-width: 750px) {
+  .acceso-registro { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 400px) {
+  .campos-registro { grid-template-columns: minmax(0, 1fr); }
+}
