@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { FiltrosAgenda } from './FiltrosAgenda.jsx'
 import { api } from './api.js'
 import { CierreMalTiempo } from './CierreMalTiempo.jsx'
 import { HistorialTurno } from './HistorialTurno.jsx'
@@ -22,14 +28,15 @@ function estadoTurno(turno) {
   return 'Libre'
 }
 
-export function Agenda({ usuario }) {
+export default function Agenda({ usuario }) {
   const [params, setParams] = useSearchParams()
   const [sedes, setSedes] = useState(null)
   const [errorSedes, setErrorSedes] = useState('')
   const [consulta, setConsulta] = useState(null)
   const [aviso, setAviso] = useState(null)
   const [alcance, setAlcance] = useState(null)
-  const celdaActiva = useRef(null)
+  const disparadorPanel = useRef(null)
+  const movil = useIsMobile()
   const fecha = fechaValida(params.get('fecha')) ? params.get('fecha') : hoy()
   const sede = sedes?.find(item => String(item.id) === params.get('sede')) || sedes?.[0]
   const llave = sede ? `${sede.id}:${fecha}` : ''
@@ -91,7 +98,8 @@ export function Agenda({ usuario }) {
     setParams({ sede: nuevaSede, fecha: nuevaFecha })
   }
 
-  function seleccionar(id, inicio) {
+  function seleccionar(id, inicio, disparador) {
+    disparadorPanel.current = disparador
     setAlcance(null)
     setParams({ ...Object.fromEntries(nuevoParams), cancha: id, hora: inicio }, { replace: true })
   }
@@ -105,10 +113,11 @@ export function Agenda({ usuario }) {
 
   function cerrarDetalle() {
     setParams(nuevoParams, { replace: true })
-    celdaActiva.current?.focus()
+    if (!movil) disparadorPanel.current?.focus()
   }
 
-  function abrirAcciones(periodo) {
+  function abrirAcciones(periodo, disparador) {
+    disparadorPanel.current = disparador
     setParams(nuevoParams, { replace: true })
     setAlcance({ periodo, llave })
   }
@@ -128,20 +137,58 @@ export function Agenda({ usuario }) {
 
   const periodo = alcance?.llave === llave ? alcance.periodo : null
 
+  function cerrarPanel() {
+    if (periodo) setAlcance(null)
+    else cerrarDetalle()
+  }
+
+  const contenidoPanel = periodo === 'mal-tiempo'
+    ? <CierreMalTiempo key={llave} sedes={sedes} sedeId={sede.id}
+      cerrar={cerrarPanel} alConfirmar={actualizarCierre} />
+    : periodo ? <AccionesAgenda key={`${llave}:${periodo}`} sede={sede} fecha={fecha}
+      alcance={periodo} cerrar={cerrarPanel} alConfirmar={actualizarLote} />
+    : turno?.tiene_historial && verHistorial
+      ? <HistorialTurno key={`${llave}:${canchaId}:${hora}`} cancha={columna.cancha}
+        fecha={fecha} turno={turno} volver={() => cambiarHistorial(false)} />
+      : turno ? <>
+        <div className="turno-resumen">
+          <Badge variant="secondary" className="text-xs">{estadoTurno(turno)}</Badge>
+          {!movil && <button type="button" aria-label="Cerrar detalle" onClick={cerrarDetalle}>×</button>}
+          <h3>{turno.hora_inicio} – {turno.hora_fin}</h3>
+          <p>{columna.cancha.nombre}</p>
+        </div>
+        {turno.organizador && <p>{turno.organizador}</p>}
+        {turno.importe && <p>{importe(turno.importe)}</p>}
+        {turno.motivo && <p>{etiquetasBloqueo[turno.motivo]}</p>}
+        {turno.observaciones && <p>{turno.observaciones}</p>}
+        {turno.tiene_historial && <Button className="accion" type="button" variant="outline"
+          onClick={() => cambiarHistorial(true)}>Ver historial</Button>}
+        {turno.reservable && <Button asChild className="accion no-underline">
+          <Link to={'/agenda/nueva-reserva?' + params.toString()}>Nueva reserva</Link>
+        </Button>}
+        {(puedeGestionarBloqueo || puedeCancelarReserva) && <AccionesTurno
+          key={`${llave}:${canchaId}:${hora}:${turno.evento_id}`}
+          turno={turno} canchaId={canchaId} fecha={fecha} alGuardar={refrescarAgenda}
+          puedeBloquear={puedeGestionarBloqueo} puedeCancelar={puedeCancelarReserva} />}
+      </> : <>
+        <h3>Elegí un turno</h3>
+        <p>Seleccioná una celda para consultar su detalle.</p>
+      </>
+
   return <main className="pagina" onKeyDown={evento => {
-    if (evento.key === 'Escape' && turno) cerrarDetalle()
+    if (!movil && evento.key === 'Escape' && turno) cerrarDetalle()
   }}>
     <header className="encabezado encabezado-agenda">
       <div><h1>Agenda</h1>
       <p>{administrador ? 'Consultá las reservas y los bloqueos de cada cancha.' : 'Elegí un turno para consultar su disponibilidad.'}</p></div>
       {administrador && sede && <div className="controles-agenda">
         {sede.canchas.length > 0 && fecha >= hoy() && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
-          <button type="button" className="primario" aria-pressed={periodo === 'dia'}
-            onClick={() => abrirAcciones('dia')}>Acciones del día</button>}
-        {sede.canchas.length > 0 && <button type="button" aria-pressed={periodo === 'mes'}
-          onClick={() => abrirAcciones('mes')}>Acciones del mes</button>}
-        <button type="button" aria-pressed={periodo === 'mal-tiempo'}
-          onClick={() => abrirAcciones('mal-tiempo')}>Cierre por mal tiempo</button>
+          <Button type="button" aria-pressed={periodo === 'dia'}
+            onClick={evento => abrirAcciones('dia', evento.currentTarget)}>Acciones del día</Button>}
+        {sede.canchas.length > 0 && <Button type="button" variant="outline" aria-pressed={periodo === 'mes'}
+          onClick={evento => abrirAcciones('mes', evento.currentTarget)}>Acciones del mes</Button>}
+        <Button type="button" variant="outline" aria-pressed={periodo === 'mal-tiempo'}
+          onClick={evento => abrirAcciones('mal-tiempo', evento.currentTarget)}>Cierre por mal tiempo</Button>
       </div>}
     </header>
     {errorSedes && <p className="error" role="alert">{errorSedes}</p>}
@@ -150,26 +197,8 @@ export function Agenda({ usuario }) {
       {administrador ? 'Cargá una sede y sus canchas desde el admin de Django para ver la agenda.' : 'Todavía no hay sedes disponibles.'}
     </p>}
     {sede && <>
-      <section className="tarjeta filtros" aria-label="Filtros de agenda">
-        <label>Sede<select value={sede.id} onChange={evento => cambiarVista(evento.target.value, fecha)}>
-          {sedes.map(item => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-        </select></label>
-        <div>
-          <label htmlFor="fecha-agenda">Fecha</label>
-          <div className="selector-fecha">
-            <button aria-label="Día anterior" disabled={fecha <= inicioOperaciones}
-              onClick={() => cambiarVista(sede.id, desplazarFecha(fecha, -1))}>‹</button>
-            <input id="fecha-agenda" type="date" value={fecha} min={inicioOperaciones} max={maximo}
-              onChange={evento => {
-                const valor = evento.target.value
-                if (valor >= inicioOperaciones && valor <= maximo) cambiarVista(sede.id, valor)
-              }} />
-            <button aria-label="Día siguiente" disabled={fecha >= maximo}
-              onClick={() => cambiarVista(sede.id, desplazarFecha(fecha, 1))}>›</button>
-            <button onClick={() => cambiarVista(sede.id, hoy())}>Hoy</button>
-          </div>
-        </div>
-      </section>
+      <FiltrosAgenda sedes={sedes} sede={sede} fecha={fecha} minimo={inicioOperaciones}
+        maximo={maximo} cambiarVista={cambiarVista} />
       <h2 className="fecha-agenda">{labelFecha(fecha)}</h2>
       {aviso?.llave === llave && <p className={aviso.error ? 'error' : 'reserva-mensaje'}
         role={aviso.error ? 'alert' : 'status'}>{aviso.mensaje}</p>}
@@ -179,7 +208,7 @@ export function Agenda({ usuario }) {
       {columnas.length > 0 && visibles.length === 0 && !periodo && <p className="tarjeta vacio">
         {fecha < hoy() && !administrador ? 'No tenés reservas en esta fecha.' : 'No hay turnos para mostrar en esta fecha.'}
       </p>}
-      {(visibles.length > 0 || periodo) && <div className="agenda-cuerpo">
+      {(visibles.length > 0 || periodo) && <div className={movil ? undefined : "agenda-cuerpo"}>
         {visibles.length === 0 ? <p className="tarjeta vacio">No hay turnos para mostrar en esta fecha.</p> :
         <div className="tarjeta grilla">
           <table aria-label={'Turnos de ' + sede.nombre}>
@@ -200,10 +229,10 @@ export function Agenda({ usuario }) {
                     const celda = turnos.find(item => item.hora_inicio === inicio)
                     const seleccionada = canchaId === String(cancha.id) && hora === inicio
                     return <td key={cancha.id}>
-                      {celda ? <button ref={seleccionada ? celdaActiva : null}
+                      {celda ? <button type="button"
                         className={`celda ${celda.tipo || 'libre'}`}
                         aria-label={`${cancha.nombre}, ${inicio}, ${estadoTurno(celda)}${celda.tiene_historial ? ", con historial" : ""}`}
-                        aria-pressed={seleccionada} onClick={() => seleccionar(cancha.id, inicio)}>
+                        aria-pressed={seleccionada} onClick={evento => seleccionar(cancha.id, inicio, evento.currentTarget)}>
                         <span>{estadoTurno(celda)}</span>
                         {celda.tiene_historial && <span className="marca-historial" aria-hidden="true">↶</span>}
                         {celda.organizador && <small>{celda.organizador}</small>}
@@ -216,36 +245,26 @@ export function Agenda({ usuario }) {
             })}</tbody>
           </table>
         </div>}
-        <aside className="tarjeta detalle" aria-label={periodo ? "Acciones de agenda" : "Detalle del turno"}>
-          {periodo === 'mal-tiempo' ? <CierreMalTiempo key={llave} sedes={sedes} sedeId={sede.id}
-            cerrar={() => setAlcance(null)} alConfirmar={actualizarCierre} />
-          : periodo ? <AccionesAgenda key={`${llave}:${periodo}`} sede={sede} fecha={fecha}
-            alcance={periodo} cerrar={() => setAlcance(null)} alConfirmar={actualizarLote} /> : turno?.tiene_historial && verHistorial
-            ? <HistorialTurno key={`${llave}:${canchaId}:${hora}`} cancha={columna.cancha}
-              fecha={fecha} turno={turno} volver={() => cambiarHistorial(false)} /> : turno ? <>
-            <div className="turno-resumen">
-              <span>{estadoTurno(turno)}</span>
-              <button type="button" aria-label="Cerrar detalle" onClick={cerrarDetalle}>×</button>
-              <h3>{turno.hora_inicio} – {turno.hora_fin}</h3>
-              <p>{columna.cancha.nombre}</p>
-            </div>
-            {turno.organizador && <p>{turno.organizador}</p>}
-            {turno.importe && <p>{importe(turno.importe)}</p>}
-            {turno.motivo && <p>{etiquetasBloqueo[turno.motivo]}</p>}
-            {turno.observaciones && <p>{turno.observaciones}</p>}
-            {turno.tiene_historial && <button className="accion" type="button"
-              onClick={() => cambiarHistorial(true)}>Ver historial</button>}
-            {turno.reservable && <Link className="primario accion"
-              to={'/agenda/nueva-reserva?' + params.toString()}>Nueva reserva</Link>}
-            {(puedeGestionarBloqueo || puedeCancelarReserva) && <AccionesTurno
-              key={`${llave}:${canchaId}:${hora}:${turno.evento_id}`}
-              turno={turno} canchaId={canchaId} fecha={fecha} alGuardar={refrescarAgenda}
-              puedeBloquear={puedeGestionarBloqueo} puedeCancelar={puedeCancelarReserva} />}
-          </> : <>
-            <h3>Elegí un turno</h3>
-            <p>Seleccioná una celda para consultar su detalle.</p>
-          </>}
-        </aside>
+        {movil ? <Sheet open={Boolean(periodo || turno)} onOpenChange={abierto => {
+          if (!abierto) cerrarPanel()
+        }}>
+          <SheetContent side="bottom" className="max-h-[85svh] gap-0 overflow-y-auto rounded-t-xl bg-card"
+            onCloseAutoFocus={evento => {
+              if (disparadorPanel.current?.isConnected) {
+                evento.preventDefault()
+                disparadorPanel.current.focus()
+              }
+            }}>
+            <SheetHeader className="sr-only">
+              <SheetTitle>{periodo ? 'Acciones de agenda' : 'Detalle del turno'}</SheetTitle>
+              <SheetDescription>Información y acciones disponibles en la agenda.</SheetDescription>
+            </SheetHeader>
+            <div className="detalle px-4 pt-12 pb-5">{contenidoPanel}</div>
+          </SheetContent>
+        </Sheet> : <Card role="complementary" aria-label={periodo ? 'Acciones de agenda' : 'Detalle del turno'}
+          className="gap-0 py-0 shadow-none">
+          <CardContent className="detalle px-3 py-3">{contenidoPanel}</CardContent>
+        </Card>}
       </div>}
     </>}
   </main>

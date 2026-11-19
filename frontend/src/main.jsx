@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api } from './api.js'
-import { Agenda } from './Agenda.jsx'
 import { NuevaReserva } from './NuevaReserva.jsx'
 import { MisReservas } from "./MisReservas.jsx"
 import { Notificaciones } from './Notificaciones.jsx'
@@ -13,6 +12,7 @@ import { Instalaciones } from './Instalaciones.jsx'
 import { Registro } from './Registro.jsx'
 import './tema.css'
 
+const Agenda = lazy(() => import('./Agenda.jsx'))
 const NavegacionAdmin = lazy(() => import('./NavegacionAdmin.jsx'))
 
 function Marca() {
@@ -134,7 +134,9 @@ function App() {
   const contenido = <>
     {errorSesion && <p className="error" role="alert">{errorSesion}</p>}
     <Routes>
-      <Route path="/agenda" element={<Agenda usuario={usuario} />} />
+      <Route path="/agenda" element={<Suspense fallback={<main className="espera" role="status">Cargando agenda…</main>}>
+        <Agenda usuario={usuario} />
+      </Suspense>} />
       <Route path="/agenda/nueva-reserva" element={<NuevaReserva usuario={usuario} />} />
       <Route path="/mis-reservas" element={<MisReservas />} />
       <Route path="/notificaciones" element={<Notificaciones alCargar={setSinLeer} />} />
