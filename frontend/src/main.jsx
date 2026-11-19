@@ -14,6 +14,7 @@ const Instalaciones = lazy(() => import('./Instalaciones.jsx'))
 const Notificaciones = lazy(() => import('./Notificaciones.jsx'))
 const MisReservas = lazy(() => import('./MisReservas.jsx'))
 const NavegacionAdmin = lazy(() => import('./NavegacionAdmin.jsx'))
+const NavegacionUsuario = lazy(() => import('./NavegacionUsuario.jsx'))
 
 function Marca() {
   return <span className="marca"><img src="/logo.png" alt="" />Academia TM</span>
@@ -164,23 +165,10 @@ function App() {
     </Suspense>
   }
 
-  return <>
-    <header className="barra">
-      <div className="barra-contenido">
-        <Link to={agenda} aria-label="Academia TM, agenda"><Marca /></Link>
-        <div className="barra-cuenta">
-          <Link to="/mis-reservas" aria-current={location.pathname === "/mis-reservas" ? "page" : undefined}>Mis reservas</Link>
-          <Link to="/notificaciones" aria-current={ruta === '/notificaciones' ? 'page' : undefined}>
-            Notificaciones{sinLeer > 0 && <span className="contador-avisos" aria-label={`${sinLeer} sin leer`}>{sinLeer}</span>}
-          </Link>
-          <Link to="/perfil" aria-current={location.pathname === "/perfil" ? "page" : undefined}>Perfil</Link>
-          <span>{usuario.nombre || usuario.nombre_usuario}</span>
-          <button type="button" onClick={cerrar}>Salir</button>
-        </div>
-      </div>
-    </header>
+  return <Suspense fallback={<main className="espera" role="status">Cargando el portal…</main>}>
+    <NavegacionUsuario agenda={agenda} usuario={usuario} sinLeer={sinLeer} cerrar={cerrar} />
     {contenido}
-  </>
+  </Suspense>
 }
 
 createRoot(document.querySelector('#root')).render(<BrowserRouter><App /></BrowserRouter>)

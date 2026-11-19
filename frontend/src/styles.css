@@ -74,20 +74,6 @@ button:disabled { cursor: default; opacity: .55; }
 .acceso-form label { margin: 1rem 0; }
 .acceso-form .primario { display: flex; width: 100%; margin-top: 1.4rem; }
 
-.barra { background: var(--morado-oscuro); color: white; }
-.barra-contenido {
-  width: min(1600px, calc(100% - 3rem));
-  margin: auto;
-  min-height: 4rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.barra a { color: white; text-decoration: none; }
-.barra-cuenta { display: flex; align-items: center; gap: .8rem; font-size: .9rem; }
-.barra-cuenta button { background: transparent; border-color: #b896ce; color: white; min-height: 2.2rem; }
-.barra-cuenta button:hover { background: var(--morado); }
 .pagina { max-width: 1600px; margin: 0 auto; padding: 1.5rem; }
 .contenido-pagina {
   width: 100%;
@@ -158,11 +144,9 @@ button:disabled { cursor: default; opacity: .55; }
   .portada h1 { font-size: 2.45rem; margin-bottom: .65rem; }
   .acceso-form { padding: 1.25rem; }
   .pagina { padding: 1rem; }
-  .barra-contenido { width: calc(100% - 2rem); }
   .agenda-cuerpo { grid-template-columns: minmax(0, 1fr); }
 }
 
-.barra-cuenta a[aria-current="page"] { text-decoration: underline; text-underline-offset: .25rem; }
 .secciones-reservas { display: grid; gap: 1rem; }
 .lista-reservas { padding: .9rem; }
 .lista-reservas h2 { font-size: 1rem; margin: 0 0 .55rem; }
@@ -186,7 +170,6 @@ button:disabled { cursor: default; opacity: .55; }
 .detalle form { margin-top: .8rem; }
 
 @media (max-width: 520px) {
-  .barra-cuenta > span { display: none; }
   .fila-reserva { grid-template-columns: 1fr auto; }
   .fila-reserva > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
 }
@@ -221,21 +204,9 @@ button:disabled { cursor: default; opacity: .55; }
 .campos-perfil { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .datos-perfil { margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 520px) {
-  .barra-contenido { flex-wrap: wrap; gap: .45rem; padding-block: .55rem; }
   .campos-perfil, .datos-perfil { grid-template-columns: minmax(0, 1fr); }
 }
 
-.barra-cuenta { flex-wrap: wrap; }
-.contador-avisos {
-  display: inline-block;
-  margin-left: .35rem;
-  padding: .12rem .4rem;
-  border-radius: 1rem;
-  background: var(--lima);
-  color: var(--morado-oscuro);
-  font-size: .8rem;
-  font-weight: 750;
-}
 .bandeja { padding: 1rem; }
 .bandeja > label { max-width: 13rem; margin-bottom: 1rem; }
 .lista-avisos { margin: 0; padding: 0; list-style: none; }

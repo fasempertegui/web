@@ -1,0 +1,82 @@
+@layer components {
+  .portal-barra, .portal-menu-cuenta {
+    font-family: "DM Sans Variable", "Segoe UI", sans-serif;
+  }
+
+  .portal-barra {
+    border-bottom: 1px solid var(--borde);
+    background: #fff;
+  }
+
+  .portal-barra .portal-barra-contenido {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: .65rem 1rem;
+    padding-block: .65rem;
+  }
+
+  .portal-marca {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    min-width: 0;
+    width: fit-content;
+    border-radius: .5rem;
+    color: #34104e;
+    font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
+    font-size: 1.2rem;
+    font-weight: 650;
+    text-decoration: none;
+    letter-spacing: -.03em;
+    white-space: nowrap;
+  }
+
+  .portal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+  }
+
+  .portal-enlace {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    min-height: 2.5rem;
+    padding: .35rem .65rem;
+    border-radius: .6rem;
+    color: #55495f;
+    font-size: .875rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .portal-enlace svg { width: 1rem; height: 1rem; flex-shrink: 0; color: #602783; }
+  .portal-enlace:hover { background: #f8f3fa; color: #34104e; }
+  .portal-enlace[aria-current="page"] { background: #f0e7f6; color: #48196d; }
+
+  .portal-avisos { min-width: 1.15rem; justify-content: center; font-variant-numeric: tabular-nums; }
+
+  .portal-cuenta { justify-self: end; max-width: 100%; }
+  .portal-cuenta-nombre { max-width: 9rem; }
+
+  @media (max-width: 850px) {
+    .portal-barra .portal-barra-contenido { grid-template-columns: minmax(0, 1fr) auto; }
+    .portal-cuenta { grid-column: 2; grid-row: 1; }
+    .portal-nav { grid-column: 1 / -1; justify-content: flex-start; }
+  }
+
+  @media (max-width: 500px) {
+    .portal-nav { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: .2rem; }
+    .portal-enlace { gap: .25rem; min-width: 0; padding-inline: .35rem; font-size: .8125rem; }
+    .portal-enlace svg { width: .875rem; height: .875rem; }
+    .portal-cuenta-nombre { display: none; }
+  }
+
+  @media (max-width: 350px) {
+    .portal-enlace svg { display: none; }
+  }
+}
