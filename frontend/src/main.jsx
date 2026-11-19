@@ -5,11 +5,11 @@ import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react
 import { api } from './api.js'
 import { NuevaReserva } from './NuevaReserva.jsx'
 import { Perfil } from "./Perfil.jsx"
-import { Usuarios } from './Usuarios.jsx'
 import { Registro } from './Registro.jsx'
 import './tema.css'
 
 const Agenda = lazy(() => import('./Agenda.jsx'))
+const Usuarios = lazy(() => import('./Usuarios.jsx'))
 const Instalaciones = lazy(() => import('./Instalaciones.jsx'))
 const Notificaciones = lazy(() => import('./Notificaciones.jsx'))
 const MisReservas = lazy(() => import('./MisReservas.jsx'))
@@ -146,7 +146,9 @@ function App() {
       </Suspense>} />
       <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
       {usuario.es_administrador && <Route path="/usuarios"
-        element={<Usuarios alGuardar={actualizarCuenta} />} />}
+        element={<Suspense fallback={<main className="espera" role="status">Cargando usuarios…</main>}>
+          <Usuarios alGuardar={actualizarCuenta} />
+        </Suspense>} />}
       {usuario.es_administrador && <Route path="/instalaciones" element={<Suspense fallback={<main className="espera" role="status">Cargando instalaciones…</main>}>
         <Instalaciones />
       </Suspense>} />}
