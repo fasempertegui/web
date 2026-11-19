@@ -5,6 +5,7 @@ import { api } from './api.js'
 import { Agenda } from './Agenda.jsx'
 import { NuevaReserva } from './NuevaReserva.jsx'
 import { MisReservas } from "./MisReservas.jsx"
+import { Notificaciones } from './Notificaciones.jsx'
 import { Perfil } from "./Perfil.jsx"
 import './styles.css'
 
@@ -51,6 +52,7 @@ function Acceso({ iniciar, errorSesion }) {
 function App() {
   const [usuario, setUsuario] = useState(undefined)
   const [errorSesion, setErrorSesion] = useState('')
+  const [sinLeer, setSinLeer] = useState(0)
   const location = useLocation()
 
   useEffect(() => {
@@ -66,6 +68,18 @@ function App() {
     return () => controlador.abort()
   }, [])
 
+  const usuarioId = usuario?.id
+  const ruta = location.pathname
+
+  useEffect(() => {
+    if (!usuarioId || ruta === '/notificaciones') return
+    const control = new AbortController()
+    api('notificaciones/', { signal: control.signal })
+      .then(datos => { if (!control.signal.aborted) setSinLeer(datos.sin_leer) })
+      .catch(() => {})
+    return () => control.abort()
+  }, [usuarioId, ruta])
+
   async function iniciar(datos) {
     setErrorSesion('')
     await api('sesion/')
@@ -78,6 +92,7 @@ function App() {
     try {
       await api('sesion/cerrar/', { datos: {} })
       setUsuario(null)
+      setSinLeer(0)
     } catch (error) {
       setErrorSesion(error.message)
     }
@@ -93,6 +108,9 @@ function App() {
         <Link to={agenda} aria-label="Academia TM, agenda"><Marca /></Link>
         <div className="barra-cuenta">
           <Link to="/mis-reservas" aria-current={location.pathname === "/mis-reservas" ? "page" : undefined}>Mis reservas</Link>
+          <Link to="/notificaciones" aria-current={ruta === '/notificaciones' ? 'page' : undefined}>
+            Notificaciones{sinLeer > 0 && <span className="contador-avisos" aria-label={`${sinLeer} sin leer`}>{sinLeer}</span>}
+          </Link>
           <Link to="/perfil" aria-current={location.pathname === "/perfil" ? "page" : undefined}>Perfil</Link>
           <span>{usuario.nombre || usuario.nombre_usuario}</span>
           <button type="button" onClick={cerrar}>Salir</button>
@@ -104,6 +122,7 @@ function App() {
       <Route path="/agenda" element={<Agenda usuario={usuario} />} />
       <Route path="/agenda/nueva-reserva" element={<NuevaReserva usuario={usuario} />} />
       <Route path="/mis-reservas" element={<MisReservas />} />
+      <Route path="/notificaciones" element={<Notificaciones alCargar={setSinLeer} />} />
       <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
       <Route path="*" element={<Navigate to="/agenda" replace />} />
     </Routes>

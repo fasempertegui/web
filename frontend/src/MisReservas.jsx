@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
 import { horaActual, hoy, importe, labelFecha } from './fechas.js'
 
@@ -27,7 +27,8 @@ function SeccionReservas({ titulo, reservas, seleccion, seleccionar }) {
 export function MisReservas() {
   const [reservas, setReservas] = useState(null)
   const [error, setError] = useState('')
-  const [seleccion, seleccionar] = useState(null)
+  const [params, setParams] = useSearchParams()
+  const seleccion = Number(params.get('reserva')) || null
   const [cancelando, setCancelando] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState('')
@@ -41,7 +42,7 @@ export function MisReservas() {
   }, [])
 
   function elegir(id) {
-    seleccionar(id === seleccion ? null : id)
+    setParams(id === seleccion ? {} : { reserva: id }, { replace: true })
     setCancelando(false)
     setError('')
   }

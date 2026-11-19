@@ -218,3 +218,25 @@ button:disabled { cursor: default; opacity: .55; }
   .barra-contenido { flex-wrap: wrap; gap: .45rem; padding-block: .55rem; }
   .campos-perfil, .datos-perfil { grid-template-columns: minmax(0, 1fr); }
 }
+
+.barra-cuenta { flex-wrap: wrap; }
+.contador-avisos {
+  display: inline-block;
+  margin-left: .35rem;
+  padding: .12rem .4rem;
+  border-radius: 1rem;
+  background: var(--lima);
+  color: var(--morado-oscuro);
+  font-size: .8rem;
+  font-weight: 750;
+}
+.bandeja { padding: 1rem; }
+.bandeja > label { max-width: 13rem; margin-bottom: 1rem; }
+.lista-avisos { margin: 0; padding: 0; list-style: none; }
+.lista-avisos li + li { margin-top: .45rem; }
+.fila-aviso { display: grid; width: 100%; gap: .3rem; text-align: left; justify-content: stretch; color: inherit; }
+.fila-aviso > span:nth-child(2), .fila-aviso time { color: var(--texto-suave); font-weight: 400; }
+.fila-aviso time { font-size: .85rem; }
+.aviso-titulo { display: flex; gap: .6rem; align-items: center; justify-content: space-between; }
+.aviso-titulo small { color: var(--morado); background: var(--lavanda); border-radius: 1rem; padding: .2rem .5rem; }
+.paginas-avisos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-top: 1rem; }
