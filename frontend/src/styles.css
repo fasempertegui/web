@@ -297,3 +297,10 @@ button:disabled { cursor: default; opacity: .55; }
 .lista-instalacion li + li { border-top: 1px solid var(--borde); padding-top: .45rem; }
 .lista-instalacion li span { color: var(--texto-suave); font-size: .9rem; }
 .lista-instalacion li div span { display: block; margin-top: .15rem; }
+
+.lista-cierres { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.lista-cierres button { display: grid; justify-content: start; gap: .25rem; width: 100%; text-align: left; }
+.lista-cierres small { color: var(--texto-suave); font-weight: 400; }
+.acciones-agenda input[type="datetime-local"] { min-width: 0; }
+
+.grupo-revision summary small { display: block; font-weight: 500; color: var(--texto-suave); }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
+import { CierreMalTiempo } from './CierreMalTiempo.jsx'
 import { HistorialTurno } from './HistorialTurno.jsx'
 import { AccionesAgenda } from './AccionesAgenda.jsx'
 import { AccionesTurno, etiquetasBloqueo } from './AccionesTurno.jsx'
@@ -118,6 +119,13 @@ export function Agenda({ usuario }) {
     return refrescarAgenda(mensaje)
   }
 
+  function actualizarCierre(cantidad, reapertura) {
+    const resultado = reapertura ? 'Reapertura confirmada.' : 'Cierre confirmado.'
+    const cambios = cantidad === 1 ? 'Se actualizó 1 turno.' : `Se actualizaron ${cantidad} turnos.`
+    setAlcance(actual => actual?.periodo === 'mal-tiempo' && actual.llave === llave ? null : actual)
+    return refrescarAgenda(`${resultado} ${cambios}`)
+  }
+
   const periodo = alcance?.llave === llave ? alcance.periodo : null
 
   return <main className="pagina" onKeyDown={evento => {
@@ -126,12 +134,14 @@ export function Agenda({ usuario }) {
     <header className="encabezado encabezado-agenda">
       <div><h1>Agenda</h1>
       <p>{administrador ? 'Consultá las reservas y los bloqueos de cada cancha.' : 'Elegí un turno para consultar su disponibilidad.'}</p></div>
-      {administrador && sede?.canchas.length > 0 && <div className="controles-agenda">
-        {fecha >= hoy() && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
+      {administrador && sede && <div className="controles-agenda">
+        {sede.canchas.length > 0 && fecha >= hoy() && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
           <button type="button" className="primario" aria-pressed={periodo === 'dia'}
             onClick={() => abrirAcciones('dia')}>Acciones del día</button>}
-        <button type="button" aria-pressed={periodo === 'mes'}
-          onClick={() => abrirAcciones('mes')}>Acciones del mes</button>
+        {sede.canchas.length > 0 && <button type="button" aria-pressed={periodo === 'mes'}
+          onClick={() => abrirAcciones('mes')}>Acciones del mes</button>}
+        <button type="button" aria-pressed={periodo === 'mal-tiempo'}
+          onClick={() => abrirAcciones('mal-tiempo')}>Cierre por mal tiempo</button>
       </div>}
     </header>
     {errorSedes && <p className="error" role="alert">{errorSedes}</p>}
@@ -207,7 +217,9 @@ export function Agenda({ usuario }) {
           </table>
         </div>}
         <aside className="tarjeta detalle" aria-label={periodo ? "Acciones de agenda" : "Detalle del turno"}>
-          {periodo ? <AccionesAgenda key={`${llave}:${periodo}`} sede={sede} fecha={fecha}
+          {periodo === 'mal-tiempo' ? <CierreMalTiempo key={llave} sedes={sedes} sedeId={sede.id}
+            cerrar={() => setAlcance(null)} alConfirmar={actualizarCierre} />
+          : periodo ? <AccionesAgenda key={`${llave}:${periodo}`} sede={sede} fecha={fecha}
             alcance={periodo} cerrar={() => setAlcance(null)} alConfirmar={actualizarLote} /> : turno?.tiene_historial && verHistorial
             ? <HistorialTurno key={`${llave}:${canchaId}:${hora}`} cancha={columna.cancha}
               fecha={fecha} turno={turno} volver={() => cambiarHistorial(false)} /> : turno ? <>
