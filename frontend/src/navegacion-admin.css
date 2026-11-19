@@ -1,0 +1,40 @@
+@layer components {
+  .menu-admin {
+    font-family: "DM Sans Variable", "Segoe UI", sans-serif;
+  }
+
+  .menu-admin-marca {
+    background: linear-gradient(135deg, #5d287a, #34104e);
+  }
+
+  .menu-admin-titulo {
+    font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
+    letter-spacing: -.03em;
+  }
+
+  .menu-admin-enlace[data-active="true"]::before {
+    content: "";
+    position: absolute;
+    inset-block: .55rem;
+    left: .13rem;
+    width: .16rem;
+    border-radius: 1rem;
+    background: #602783;
+  }
+}
+
+[data-slot="sheet-content"]:has(.menu-admin) > button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  background: rgb(255 255 255 / .12);
+  color: white;
+  opacity: 1;
+}
+
+[data-slot="sheet-content"]:has(.menu-admin) > button:hover {
+  background: rgb(255 255 255 / .2);
+}
