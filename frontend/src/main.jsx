@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api } from './api.js'
 import { NuevaReserva } from './NuevaReserva.jsx'
-import { Notificaciones } from './Notificaciones.jsx'
 import { Perfil } from "./Perfil.jsx"
 import { Usuarios } from './Usuarios.jsx'
 import { Instalaciones } from './Instalaciones.jsx'
@@ -12,6 +11,7 @@ import { Registro } from './Registro.jsx'
 import './tema.css'
 
 const Agenda = lazy(() => import('./Agenda.jsx'))
+const Notificaciones = lazy(() => import('./Notificaciones.jsx'))
 const MisReservas = lazy(() => import('./MisReservas.jsx'))
 const NavegacionAdmin = lazy(() => import('./NavegacionAdmin.jsx'))
 
@@ -141,7 +141,9 @@ function App() {
       <Route path="/mis-reservas" element={<Suspense fallback={<main className="espera" role="status">Cargando reservas…</main>}>
         <MisReservas />
       </Suspense>} />
-      <Route path="/notificaciones" element={<Notificaciones alCargar={setSinLeer} />} />
+      <Route path="/notificaciones" element={<Suspense fallback={<main className="espera" role="status">Cargando notificaciones…</main>}>
+        <Notificaciones alCargar={setSinLeer} />
+      </Suspense>} />
       <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
       {usuario.es_administrador && <Route path="/usuarios"
         element={<Usuarios alGuardar={actualizarCuenta} />} />}
