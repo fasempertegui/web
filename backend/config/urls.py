@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/notificaciones/leer-todas/", notificaciones.leer_todas),
     path("api/sedes/", listar_sedes),
     path("api/agenda/", bloqueos.agenda),
+    path("api/agenda/diaria/", bloqueos.agenda_diaria),
     path("api/bloqueos/", bloqueos.crear),
     path("api/bloqueos/masivos/vista-previa/", bloqueos.previsualizar_masivos),
     path("api/bloqueos/masivos/confirmar/", bloqueos.confirmar_masivos),

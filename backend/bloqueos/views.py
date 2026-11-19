@@ -1,8 +1,10 @@
 import json
+from datetime import date, timedelta
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.http import require_POST, require_safe
 
 from instalaciones.models import Cancha, Sede
@@ -23,6 +25,11 @@ class AgendaForm(forms.Form):
     fecha = forms.DateField(input_formats=["%Y-%m-%d"])
 
 
+class AgendaDiariaForm(forms.Form):
+    sede_id = forms.IntegerField(min_value=1)
+    fecha = forms.DateField(input_formats=["%Y-%m-%d"])
+
+
 class BloqueoForm(AgendaForm):
     hora_inicio = forms.TimeField(input_formats=["%H:%M"])
     motivo = forms.ChoiceField(choices=Bloqueo.Motivo.choices)
@@ -32,6 +39,104 @@ class BloqueoForm(AgendaForm):
 
 def acceso_denegado():
     return JsonResponse({"error": "Se requiere acceso de administrador."}, status=403)
+
+
+def datos_evento(evento, *, es_administrador):
+    turno = evento.turno
+    datos = {
+        "hora_inicio": turno.hora_inicio,
+        "hora_fin": turno.hora_fin,
+        "evento_id": evento.pk,
+        "tipo": evento.tipo,
+        "estado": evento.estado,
+        "observaciones": evento.observaciones,
+    }
+    if evento.tipo == Evento.Tipo.BLOQUEO:
+        datos.update(bloqueo_id=evento.bloqueo.pk, motivo=evento.bloqueo.motivo)
+    else:
+        reserva = evento.reserva
+        datos.update(reserva_id=reserva.pk, importe=reserva.importe)
+        if es_administrador:
+            datos.update(
+                organizador=reserva.organizador.get_full_name() or reserva.organizador.username,
+                organizador_id=reserva.organizador_id,
+            )
+    return datos
+
+
+@require_safe
+def agenda_diaria(request):
+    usuario = request.user
+    if not usuario.is_authenticated:
+        return JsonResponse({"error": "Iniciá sesión para consultar la agenda."}, status=401)
+    form = AgendaDiariaForm(request.GET)
+    if not form.is_valid():
+        return errores_formulario(form)
+
+    fecha = form.cleaned_data["fecha"]
+    ahora = timezone.localtime()
+    hoy = ahora.date()
+    try:
+        maximo = hoy.replace(year=hoy.year + 1)
+    except ValueError:
+        maximo = hoy.replace(year=hoy.year + 1, day=28)
+    if not date(2026, 8, 1) <= fecha <= maximo:
+        return JsonResponse({"error": "La fecha está fuera del calendario de la agenda."}, status=400)
+
+    sede = Sede.objects.filter(pk=form.cleaned_data["sede_id"]).first()
+    if sede is None:
+        return JsonResponse({"error": "La sede no existe."}, status=404)
+
+    horarios = dict(horarios_del_dia(sede, fecha))
+    eventos = Evento.objects.filter(
+        turno__cancha__sede=sede, turno__fecha=fecha,
+    ).exclude(estado=Evento.Estado.ANULADO).select_related(
+        "turno", "bloqueo", "reserva__organizador"
+    )
+    por_cancha = {}
+    horas_propias = set()
+    for evento in eventos:
+        turno = evento.turno
+        propia = evento.tipo == Evento.Tipo.RESERVA and evento.reserva.organizador_id == usuario.pk
+        if propia:
+            horas_propias.add(turno.hora_inicio)
+        if usuario.is_superuser or propia:
+            datos = datos_evento(evento, es_administrador=usuario.is_superuser)
+        elif turno.hora_inicio in horarios:
+            datos = {"hora_inicio": turno.hora_inicio, "hora_fin": turno.hora_fin, "tipo": "no_disponible"}
+        else:
+            continue
+        por_cancha.setdefault(turno.cancha_id, {})[turno.hora_inicio] = datos
+
+    columnas = []
+    for cancha in sede.canchas.all():
+        activa = sede.estado == Sede.Estado.ACTIVA and cancha.estado == Cancha.Estado.ACTIVA
+        ocupaciones = por_cancha.get(cancha.pk, {})
+        if not activa and not ocupaciones:
+            continue
+        turnos = []
+        for inicio in sorted(horarios.keys() | ocupaciones.keys()):
+            futuro = (fecha, inicio) > (hoy, ahora.time())
+            if not usuario.is_superuser and not futuro and inicio not in horas_propias:
+                continue
+            datos = ocupaciones.get(inicio)
+            if datos is None:
+                if not activa:
+                    continue
+                datos = {"hora_inicio": inicio, "hora_fin": horarios[inicio], "evento_id": 0}
+            datos.update(
+                en_horario=activa and inicio in horarios,
+                reservable=(
+                    activa and inicio in horarios and futuro and inicio not in ocupaciones
+                    and fecha <= hoy + timedelta(days=3) and sede.precio_reserva_vigente is not None
+                ),
+                iniciado=not futuro,
+            )
+            for campo in ("hora_inicio", "hora_fin"):
+                datos[campo] = datos[campo].isoformat(timespec="minutes")
+            turnos.append(datos)
+        columnas.append({"cancha": {"id": cancha.pk, "nombre": cancha.nombre}, "turnos": turnos})
+    return JsonResponse({"sede_id": sede.pk, "fecha": fecha, "columnas": columnas})
 
 
 @require_safe
@@ -57,22 +162,7 @@ def agenda(request):
     )
     for evento in eventos:
         turno = evento.turno
-        datos = {
-            "hora_inicio": turno.hora_inicio,
-            "hora_fin": turno.hora_fin,
-            "evento_id": evento.pk,
-            "tipo": evento.tipo,
-            "estado": evento.estado,
-            "observaciones": evento.observaciones,
-        }
-        if evento.tipo == Evento.Tipo.BLOQUEO:
-            datos.update(bloqueo_id=evento.bloqueo.pk, motivo=evento.bloqueo.motivo)
-        else:
-            reserva = evento.reserva
-            datos.update(
-                reserva_id=reserva.pk, organizador=reserva.organizador.get_full_name(),
-                organizador_id=reserva.organizador_id, importe=reserva.importe,
-            )
+        datos = datos_evento(evento, es_administrador=True)
         turnos[turno.hora_inicio] = datos
     for datos in turnos.values():
         for campo in ("hora_inicio", "hora_fin"):

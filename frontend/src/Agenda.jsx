@@ -7,52 +7,9 @@ import { desplazarFecha, fechaValida, horaActual, hoy, importe, labelFecha } fro
 
 const inicioOperaciones = '2026-08-01'
 
-function horariosSede(sede, fecha) {
-  const dia = new Date(fecha + 'T12:00:00Z').getUTCDay() || 7
-  const horario = sede.horarios.find(item => item.dia_semana === dia)
-  if (!horario) return []
-  const franjas = [[horario.hora_inicio_1, horario.hora_fin_1], [horario.hora_inicio_2, horario.hora_fin_2]]
-  return franjas.flatMap(([inicio, fin]) => {
-    if (!inicio) return []
-    const desde = Number(inicio.slice(0, 2))
-    const hasta = Number(fin.slice(0, 2))
-    return Array.from({ length: hasta - desde }, (_, indice) => {
-      const hora = desde + indice
-      return {
-        hora_inicio: String(hora).padStart(2, '0') + ':00',
-        hora_fin: String(hora + 1).padStart(2, '0') + ':00',
-      }
-    })
-  })
-}
-
-async function consultarAgenda(sede, fecha, administrador, signal) {
-  if (administrador) {
-    return Promise.all(sede.canchas.map(async cancha => {
-      const datos = await api(`agenda/?cancha_id=${cancha.id}&fecha=${fecha}`, { signal })
-      return { cancha, turnos: datos.turnos }
-    }))
-  }
-
-  const horarios = horariosSede(sede, fecha)
-  const { reservas } = await api('reservas/', { signal })
-  const propias = reservas.filter(reserva => reserva.fecha === fecha && reserva.estado !== 'anulado')
-  return Promise.all(sede.canchas.map(async cancha => {
-    let datos = { turnos: [] }
-    if (fecha >= hoy() && fecha <= desplazarFecha(hoy(), 3) && horarios.length) {
-      try {
-        datos = await api(`canchas/${cancha.id}/disponibilidad/?fecha=${fecha}`, { signal })
-      } catch (error) {
-        if (!error.message.includes('precio por turno')) throw error
-      }
-    }
-    const turnos = new Map(horarios.map(turno => [turno.hora_inicio, { ...turno, tipo: 'no_disponible' }]))
-    for (const libre of datos.turnos) turnos.set(libre.hora_inicio, libre)
-    for (const reserva of propias.filter(item => item.cancha_id === cancha.id)) {
-      turnos.set(reserva.hora_inicio, { ...reserva, tipo: 'reserva' })
-    }
-    return { cancha, turnos: [...turnos.values()] }
-  }))
+async function consultarAgenda(sede, fecha, signal) {
+  const { columnas } = await api(`agenda/diaria/?sede_id=${sede.id}&fecha=${fecha}`, { signal })
+  return columnas
 }
 
 function estadoTurno(turno) {
@@ -86,7 +43,7 @@ export function Agenda({ usuario }) {
   useEffect(() => {
     if (!sede) return
     const control = new AbortController()
-    consultarAgenda(sede, fecha, administrador, control.signal)
+    consultarAgenda(sede, fecha, control.signal)
       .then(columnas => setConsulta({ llave, columnas }))
       .catch(error => {
         if (error.name !== 'AbortError') setConsulta({ llave, error: error.message })
@@ -100,35 +57,26 @@ export function Agenda({ usuario }) {
   const hora = params.get('hora')
   const columna = columnas.find(item => String(item.cancha.id) === canchaId)
   const turno = columna?.turnos.find(item => item.hora_inicio === hora)
-  const horas = [...new Set(columnas.flatMap(item => item.turnos.map(t => t.hora_inicio)))].sort()
-  const visibles = administrador ? horas : horas.filter(inicio =>
-    (fecha > hoy() || (fecha === hoy() && inicio > horaActual())) ||
-    columnas.some(item => item.turnos.some(t => t.hora_inicio === inicio && t.tipo === 'reserva'))
-  )
+  const visibles = [...new Set(columnas.flatMap(item => item.turnos.map(t => t.hora_inicio)))].sort()
   const maximo = desplazarFecha(hoy(), 365)
   const nuevoParams = new URLSearchParams({ sede: sede?.id || '', fecha })
 
-  const turnoFuturo = turno && (fecha > hoy() || (fecha === hoy() && hora > horaActual()))
+  const turnoFuturo = turno && !turno.iniciado
   const limiteBloqueo = new Date(hoy() + 'T12:00:00Z')
   limiteBloqueo.setUTCMonth(limiteBloqueo.getUTCMonth() + 3, 0)
-  const enHorario = sede && horariosSede(sede, fecha).some(item => item.hora_inicio === hora)
   const puedeCancelarReserva = administrador && turnoFuturo &&
     turno.tipo === 'reserva' && turno.estado === 'programado'
   const puedeGestionarBloqueo = administrador && turnoFuturo && (
     (turno.tipo === 'bloqueo' && turno.estado === 'programado') ||
-    (enHorario && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
+    (turno.en_horario && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
       (!turno.tipo || (turno.tipo === 'reserva' && turno.estado === 'programado')))
   )
 
-  async function actualizarTurno(mensaje) {
+  async function refrescarAgenda(mensaje) {
     setAviso({ llave, mensaje })
     try {
-      const datos = await api(`agenda/?cancha_id=${canchaId}&fecha=${fecha}`)
-      setConsulta(actual => actual?.llave === llave && actual.columnas ? {
-        ...actual,
-        columnas: actual.columnas.map(item => String(item.cancha.id) === canchaId
-          ? { ...item, turnos: datos.turnos } : item),
-      } : actual)
+      const columnas = await consultarAgenda(sede, fecha)
+      setConsulta(actual => actual?.llave === llave ? { llave, columnas } : actual)
     } catch (fallo) {
       setAviso({ llave, mensaje: mensaje + ' No se pudo actualizar la agenda. ' + fallo.message, error: true })
     }
@@ -154,24 +102,13 @@ export function Agenda({ usuario }) {
     setAlcance({ periodo, llave })
   }
 
-  async function actualizarLote(cantidad) {
+  function actualizarLote(cantidad) {
     const mensaje = cantidad === 1 ? 'Se actualizó 1 turno.' : `Se actualizaron ${cantidad} turnos.`
     setAlcance(actual => actual?.llave === llave ? null : actual)
-    setAviso({ llave, mensaje })
-    try {
-      const columnasActualizadas = await consultarAgenda(sede, fecha, administrador)
-      setConsulta(actual => actual?.llave === llave ? { llave, columnas: columnasActualizadas } : actual)
-    } catch (fallo) {
-      setAviso({ llave, mensaje: mensaje + ' No se pudo actualizar la agenda. ' + fallo.message, error: true })
-    }
+    return refrescarAgenda(mensaje)
   }
 
   const periodo = alcance?.llave === llave ? alcance.periodo : null
-
-  function reservarDisponible() {
-    return turno && !turno.tipo && fecha >= hoy() && fecha <= desplazarFecha(hoy(), 3)
-      && (fecha !== hoy() || hora > horaActual())
-  }
 
   return <main className="pagina" onKeyDown={evento => {
     if (evento.key === 'Escape' && turno) cerrarDetalle()
@@ -271,11 +208,11 @@ export function Agenda({ usuario }) {
             {turno.importe && <p>{importe(turno.importe)}</p>}
             {turno.motivo && <p>{motivosBloqueo[turno.motivo]}</p>}
             {turno.observaciones && <p>{turno.observaciones}</p>}
-            {reservarDisponible() && <Link className="primario accion"
+            {turno.reservable && <Link className="primario accion"
               to={'/agenda/nueva-reserva?' + params.toString()}>Nueva reserva</Link>}
             {(puedeGestionarBloqueo || puedeCancelarReserva) && <AccionesTurno
               key={`${llave}:${canchaId}:${hora}:${turno.evento_id}`}
-              turno={turno} canchaId={canchaId} fecha={fecha} alGuardar={actualizarTurno}
+              turno={turno} canchaId={canchaId} fecha={fecha} alGuardar={refrescarAgenda}
               puedeBloquear={puedeGestionarBloqueo} puedeCancelar={puedeCancelarReserva} />}
           </> : <>
             <h3>Elegí un turno</h3>
