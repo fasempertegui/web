@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api } from './api.js'
@@ -32,28 +33,23 @@ function MarcoAcceso({ children, registro = false }) {
 function Acceso({ iniciar, errorSesion }) {
   const location = useLocation()
   const [error, setError] = useState('')
-  const [ocupado, setOcupado] = useState(false)
+  const { register, handleSubmit, formState: { isSubmitting: ocupado } } = useForm()
 
-  async function enviar(evento) {
-    evento.preventDefault()
-    setOcupado(true)
+  async function enviar(datos) {
     setError('')
-    const datos = Object.fromEntries(new FormData(evento.currentTarget))
     try {
       await iniciar(datos)
     } catch (fallo) {
       setError(fallo.message)
-    } finally {
-      setOcupado(false)
     }
   }
 
   return <MarcoAcceso>
-      <form className="tarjeta acceso-form" onSubmit={enviar}>
+      <form className="tarjeta acceso-form" onSubmit={handleSubmit(enviar)}>
         <h2>Iniciar sesión</h2>
-        <label>Usuario<input required name="nombre_usuario" autoComplete="username"
+        <label>Usuario<input required {...register('nombre_usuario')} autoComplete="username"
           defaultValue={location.state?.nombreUsuario || ""} /></label>
-        <label>Contraseña<input required name="contrasena" type="password" autoComplete="current-password" /></label>
+        <label>Contraseña<input required {...register('contrasena')} type="password" autoComplete="current-password" /></label>
         {(error || errorSesion) && <p className="error" role="alert">{error || errorSesion}</p>}
         <button className="primario" disabled={ocupado}>{ocupado ? 'Ingresando…' : 'Ingresar'}</button>
         <Link className="enlace-acceso" to="/registro"

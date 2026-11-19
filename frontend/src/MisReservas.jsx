@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
 import { horaActual, hoy, importe, labelFecha } from './fechas.js'
@@ -30,7 +31,7 @@ export function MisReservas() {
   const [params, setParams] = useSearchParams()
   const seleccion = Number(params.get('reserva')) || null
   const [cancelando, setCancelando] = useState(false)
-  const [guardando, setGuardando] = useState(false)
+  const { register, handleSubmit, formState: { isSubmitting: guardando } } = useForm({ shouldUnregister: true })
   const [mensaje, setMensaje] = useState('')
 
   useEffect(() => {
@@ -47,14 +48,12 @@ export function MisReservas() {
     setError('')
   }
 
-  async function cancelar(evento) {
-    evento.preventDefault()
-    const motivo = new FormData(evento.currentTarget).get('motivo').trim()
+  async function cancelar(campos) {
+    const motivo = campos.motivo.trim()
     if (motivo.length < 5) {
       setError('Ingresá un motivo de al menos 5 caracteres.')
       return
     }
-    setGuardando(true)
     setError('')
     setMensaje('')
     try {
@@ -64,8 +63,6 @@ export function MisReservas() {
       setMensaje('Reserva cancelada.')
     } catch (fallo) {
       setError(fallo.message)
-    } finally {
-      setGuardando(false)
     }
   }
 
@@ -108,9 +105,9 @@ export function MisReservas() {
         {detalle.motivo_anulacion && <p>Motivo de cancelación: {detalle.motivo_anulacion}</p>}
         {puedeCancelar && !cancelando && <button type="button" className="accion"
           onClick={() => { setMensaje(''); setCancelando(true) }}>Cancelar reserva</button>}
-        {cancelando && <form onSubmit={cancelar}>
+        {cancelando && <form onSubmit={handleSubmit(cancelar)}>
           <label>Motivo de cancelación<textarea required minLength={5} rows={3}
-            name="motivo" disabled={guardando} /></label>
+            {...register('motivo')} disabled={guardando} /></label>
           <div className="acciones">
             <button type="button" disabled={guardando} onClick={() => {
               setCancelando(false)

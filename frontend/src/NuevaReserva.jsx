@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
 import { fechaValida, importe, labelFecha } from './fechas.js'
@@ -59,7 +60,7 @@ export function NuevaReserva({ usuario }) {
   const [revision, revisar] = useState(!esAdmin)
   const [consulta, setConsulta] = useState(null)
   const [error, setError] = useState('')
-  const [enviando, setEnviando] = useState(false)
+  const { register, handleSubmit, formState: { isSubmitting: enviando } } = useForm({ shouldUnregister: true })
   const sedeId = params.get('sede')
   const canchaId = params.get('cancha')
   const fecha = params.get('fecha')
@@ -83,10 +84,7 @@ export function NuevaReserva({ usuario }) {
     return () => control.abort()
   }, [sedeId, canchaId, fecha, hora, seleccionValida])
 
-  async function confirmar(evento) {
-    evento.preventDefault()
-    const observaciones = new FormData(evento.currentTarget).get('observaciones') || ''
-    setEnviando(true)
+  async function confirmar({ observaciones = '' }) {
     setError('')
     try {
       await api('reservas/', { datos: {
@@ -96,7 +94,6 @@ export function NuevaReserva({ usuario }) {
       navegar(volver, { replace: true })
     } catch (fallo) {
       setError(fallo.message)
-      setEnviando(false)
     }
   }
 
@@ -122,12 +119,12 @@ export function NuevaReserva({ usuario }) {
             <Link className="secundario" to={volver}>Cancelar</Link>
             <button className="primario" disabled={!organizador} onClick={() => revisar(true)}>Continuar</button>
           </div>
-        </> : <form onSubmit={confirmar}>
+        </> : <form onSubmit={handleSubmit(confirmar)}>
           <dl className="revision">
             <div><dt>Organizador</dt><dd>{nombreCompleto(organizador)}</dd></div>
             <div><dt>Precio del turno</dt><dd>{importe(consulta.precio)}</dd></div>
           </dl>
-          <label>Observaciones <span className="opcional">(opcional)</span><textarea name="observaciones" rows="3" /></label>
+          <label>Observaciones <span className="opcional">(opcional)</span><textarea {...register('observaciones')} rows="3" /></label>
           <div className="acciones">
             {esAdmin && <button type="button" disabled={enviando} onClick={() => { revisar(false); setError('') }}>Atrás</button>}
             <Link className="secundario" to={volver}>Cancelar</Link>

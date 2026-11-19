@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { api } from './api.js'
 
 function nombreCompleto(usuario) {
@@ -9,7 +10,7 @@ function DetalleUsuario({ cuenta, cerrar, alGuardar }) {
   const [accion, setAccion] = useState(null)
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
-  const [guardando, setGuardando] = useState(false)
+  const { register, handleSubmit, formState: { isSubmitting: guardando } } = useForm({ shouldUnregister: true })
 
   function cambiarAccion(nueva) {
     setAccion(nueva)
@@ -17,16 +18,13 @@ function DetalleUsuario({ cuenta, cerrar, alGuardar }) {
     setMensaje('')
   }
 
-  async function guardar(evento) {
-    evento.preventDefault()
-    const datos = Object.fromEntries(new FormData(evento.currentTarget))
+  async function guardar(datos) {
     setError('')
     if (accion === 'contrasena' && datos.contrasena !== datos.confirmar_contrasena) {
       setError('Las contraseñas no coinciden.')
       return
     }
 
-    setGuardando(true)
     try {
       const { usuario } = await api(`usuarios/${cuenta.id}/${accion}/`, { datos })
       alGuardar(usuario, accion)
@@ -34,8 +32,6 @@ function DetalleUsuario({ cuenta, cerrar, alGuardar }) {
       setAccion(null)
     } catch (fallo) {
       setError(fallo.message)
-    } finally {
-      setGuardando(false)
     }
   }
 
@@ -51,12 +47,12 @@ function DetalleUsuario({ cuenta, cerrar, alGuardar }) {
     {accion === null ? <>
       <button type="button" className="accion" onClick={() => cambiarAccion('correo')}>Cambiar correo</button>
       <button type="button" className="accion" onClick={() => cambiarAccion('contrasena')}>Restablecer contraseña</button>
-    </> : <form key={accion} onSubmit={guardar}>
+    </> : <form key={accion} onSubmit={handleSubmit(guardar)}>
       {accion === 'correo' ? <label>Nuevo correo
-        <input name="email" type="email" defaultValue={cuenta.email} required maxLength={254} disabled={guardando} />
+        <input {...register('email')} type="email" defaultValue={cuenta.email} required maxLength={254} disabled={guardando} />
       </label> : <div className="campos-contrasena">
-        <label>Nueva contraseña<input name="contrasena" type="password" required autoComplete="new-password" disabled={guardando} /></label>
-        <label>Confirmar contraseña<input name="confirmar_contrasena" type="password" required
+        <label>Nueva contraseña<input {...register('contrasena')} type="password" required autoComplete="new-password" disabled={guardando} /></label>
+        <label>Confirmar contraseña<input {...register('confirmar_contrasena')} type="password" required
           autoComplete="new-password" disabled={guardando} /></label>
       </div>}
       {error && <p className="error" role="alert">{error}</p>}

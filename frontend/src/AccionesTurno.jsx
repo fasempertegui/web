@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { api } from './api.js'
 
 export const motivosBloqueo = {
@@ -9,21 +10,18 @@ export const motivosBloqueo = {
 
 export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCancelar, alGuardar }) {
   const [operacion, setOperacion] = useState(null)
-  const [guardando, setGuardando] = useState(false)
+  const { register, handleSubmit, formState: { isSubmitting: guardando } } = useForm({ shouldUnregister: true })
   const [error, setError] = useState('')
   const bloquear = operacion === 'bloquear'
   const cancelar = operacion === 'cancelar'
   const tituloBloqueo = turno.tipo === 'reserva' ? 'Cancelar y bloquear' : 'Bloquear turno'
 
-  async function confirmar(evento) {
-    evento.preventDefault()
-    const campos = new FormData(evento.currentTarget)
-    const motivo = campos.get('motivo').trim()
+  async function confirmar(campos) {
+    const motivo = campos.motivo.trim()
     if (!bloquear && motivo.length < 5) {
       setError('Ingresá un motivo de al menos 5 caracteres.')
       return
     }
-    setGuardando(true)
     setError('')
     try {
       if (bloquear) {
@@ -33,7 +31,7 @@ export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCanc
           hora_inicio: turno.hora_inicio,
           evento_esperado: String(turno.evento_id),
           motivo,
-          observaciones: campos.get('observaciones'),
+          observaciones: campos.observaciones || '',
         } })
         await alGuardar('Turno bloqueado.')
       } else if (cancelar) {
@@ -46,8 +44,6 @@ export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCanc
       setOperacion(null)
     } catch (fallo) {
       setError(fallo.message)
-    } finally {
-      setGuardando(false)
     }
   }
 
@@ -59,14 +55,14 @@ export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCanc
     }}>{turno.tipo === 'bloqueo' ? 'Liberar bloqueo' : tituloBloqueo}</button>}
   </>
 
-  return <form className="formulario-bloqueo" onSubmit={confirmar}>
+  return <form className="formulario-bloqueo" onSubmit={handleSubmit(confirmar)}>
     {bloquear && turno.tipo === 'reserva' && <p>Al confirmar, se cancela la reserva actual y se bloquea el turno.</p>}
     {cancelar && <p>Al confirmar, se cancela la reserva y el turno vuelve a quedar disponible si está dentro del horario de atención.</p>}
     {!bloquear ? <label>{cancelar ? 'Motivo de cancelación' : 'Motivo de liberación'}
-      <textarea name="motivo" rows={3} required minLength={5} disabled={guardando} />
+      <textarea {...register('motivo')} rows={3} required minLength={5} disabled={guardando} />
     </label> : <>
       <label>Motivo del bloqueo
-        <select name="motivo" defaultValue="" required disabled={guardando}>
+        <select {...register('motivo')} defaultValue="" required disabled={guardando}>
           <option value="" disabled>Elegí un motivo</option>
           {Object.entries(motivosBloqueo).map(([valor, nombre]) =>
             <option key={valor} value={valor}>{nombre}</option>
@@ -74,7 +70,7 @@ export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCanc
         </select>
       </label>
       <label>Observaciones <span className="opcional">(opcional)</span>
-        <textarea name="observaciones" rows={3} disabled={guardando} />
+        <textarea {...register('observaciones')} rows={3} disabled={guardando} />
       </label>
     </>}
     {error && <p className="error" role="alert">{error}</p>}

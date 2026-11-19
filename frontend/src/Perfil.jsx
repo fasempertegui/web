@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { api } from './api.js'
 import { hoy, labelFecha } from './fechas.js'
 
 export function Perfil({ usuario, alGuardar }) {
   const [editando, setEditando] = useState(false)
-  const [guardando, setGuardando] = useState(false)
+  const { register, handleSubmit, formState: { isSubmitting: guardando } } = useForm({ shouldUnregister: true })
   const [error, setError] = useState('')
   const [guardado, setGuardado] = useState(false)
   const [cargando, setCargando] = useState(true)
@@ -18,10 +19,7 @@ export function Perfil({ usuario, alGuardar }) {
     return () => control.abort()
   }, [alGuardar])
 
-  async function guardar(evento) {
-    evento.preventDefault()
-    const datos = Object.fromEntries(new FormData(evento.currentTarget))
-    setGuardando(true)
+  async function guardar(datos) {
     setError('')
     try {
       const perfil = await api('perfil/', { datos, metodo: 'PUT' })
@@ -30,8 +28,6 @@ export function Perfil({ usuario, alGuardar }) {
       setGuardado(true)
     } catch (fallo) {
       setError(fallo.message)
-    } finally {
-      setGuardando(false)
     }
   }
 
@@ -46,15 +42,15 @@ export function Perfil({ usuario, alGuardar }) {
     {guardado && <p className="reserva-mensaje" role="status">Perfil actualizado.</p>}
     {error && <p className="error" role="alert">{error}</p>}
     <section className="tarjeta reserva-form">
-      {editando ? <form onSubmit={guardar}>
+      {editando ? <form onSubmit={handleSubmit(guardar)}>
         <div className="campos-perfil">
-          <label>Nombre<input name="nombre" defaultValue={usuario.nombre}
+          <label>Nombre<input {...register('nombre')} defaultValue={usuario.nombre}
             required maxLength={100} autoComplete="given-name" disabled={guardando} /></label>
-          <label>Apellido<input name="apellido" defaultValue={usuario.apellido}
+          <label>Apellido<input {...register('apellido')} defaultValue={usuario.apellido}
             required maxLength={100} autoComplete="family-name" disabled={guardando} /></label>
-          <label>Celular<input name="celular_contacto" type="tel" defaultValue={usuario.celular_contacto}
+          <label>Celular<input {...register('celular_contacto')} type="tel" defaultValue={usuario.celular_contacto}
             required maxLength={30} autoComplete="tel" disabled={guardando} /></label>
-          <label>Fecha de nacimiento<input name="fecha_nacimiento" type="date"
+          <label>Fecha de nacimiento<input {...register('fecha_nacimiento')} type="date"
             defaultValue={usuario.fecha_nacimiento || ''} required max={hoy()}
             autoComplete="bday" disabled={guardando} /></label>
         </div>

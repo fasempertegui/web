@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { api } from './api.js'
 import { importe } from './fechas.js'
 
@@ -6,9 +7,9 @@ const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', '
 const superficies = { cemento: 'Cemento', polvo_ladrillo: 'Polvo de ladrillo' }
 const horas = Array.from({ length: 24 }, (_, hora) => String(hora).padStart(2, '0') + ':00')
 
-function CampoHora({ nombre, etiqueta, valor, requerido }) {
+function CampoHora({ nombre, etiqueta, valor, requerido, register }) {
   return <label>{etiqueta}
-    <select name={nombre} defaultValue={valor || ''} required={requerido}>
+    <select {...register(nombre)} defaultValue={valor || ''} required={requerido}>
       <option value="">Elegí una hora</option>
       {horas.map(hora => <option key={hora}>{hora}</option>)}
     </select>
@@ -17,7 +18,7 @@ function CampoHora({ nombre, etiqueta, valor, requerido }) {
 
 function EditorInstalacion({ accion, sede, cerrar, guardar }) {
   const [error, setError] = useState('')
-  const [guardando, setGuardando] = useState(false)
+  const { register, handleSubmit, formState: { isSubmitting: guardando } } = useForm({ shouldUnregister: true })
   const [cerrado, marcarCerrado] = useState(false)
   const horario = sede?.horarios.find(item => item.dia_semana === accion.dia)
   const titulos = {
@@ -27,38 +28,33 @@ function EditorInstalacion({ accion, sede, cerrar, guardar }) {
     horario: dias[accion.dia - 1],
   }
 
-  async function enviar(evento) {
-    evento.preventDefault()
-    const datos = Object.fromEntries(new FormData(evento.currentTarget))
+  async function enviar(datos) {
     let ruta = 'instalaciones/'
     if (accion.tipo === 'cancha') ruta += `${sede.id}/canchas/`
     if (accion.tipo === 'precio') ruta += `${sede.id}/precio/`
     if (accion.tipo === 'horario') ruta += `${sede.id}/horarios/${accion.dia}/`
     const metodo = cerrado ? 'DELETE' : (accion.tipo === 'precio' || accion.tipo === 'horario') ? 'PUT' : 'POST'
-    setGuardando(true)
     setError('')
     try {
       const respuesta = await api(ruta, { metodo, datos: cerrado ? undefined : datos })
       guardar(respuesta.sede)
     } catch (fallo) {
       setError(fallo.message)
-    } finally {
-      setGuardando(false)
     }
   }
 
   return <section className="tarjeta editor-instalacion">
     <h2>{titulos[accion.tipo]}</h2>
-    <form onSubmit={enviar}>
+    <form onSubmit={handleSubmit(enviar)}>
       <fieldset disabled={guardando}>
         {['sede', 'cancha'].includes(accion.tipo) && <label>Nombre
-          <input name="nombre" required maxLength={120} />
+          <input {...register('nombre')} required maxLength={120} />
         </label>}
         {accion.tipo === 'sede' && <label>Dirección
-          <input name="direccion" required maxLength={250} />
+          <input {...register('direccion')} required maxLength={250} />
         </label>}
         {accion.tipo === 'cancha' && <label>Superficie
-          <select name="superficie" required defaultValue="">
+          <select {...register('superficie')} required defaultValue="">
             <option value="" disabled>Elegí una superficie</option>
             {Object.entries(superficies).map(([valor, etiqueta]) =>
               <option key={valor} value={valor}>{etiqueta}</option>
@@ -66,7 +62,7 @@ function EditorInstalacion({ accion, sede, cerrar, guardar }) {
           </select>
         </label>}
         {accion.tipo === 'precio' && <label>Precio por turno (ARS)
-          <input name="precio_reserva_vigente" type="number" min="0.01" step="0.01"
+          <input {...register('precio_reserva_vigente')} type="number" min="0.01" step="0.01"
             max="9999999999.99" defaultValue={sede.precio_reserva_vigente || ''} />
         </label>}
         {accion.tipo === 'horario' && <>
@@ -77,13 +73,13 @@ function EditorInstalacion({ accion, sede, cerrar, guardar }) {
           {!cerrado && <>
             <fieldset className="franja-horario">
               <legend>Primera franja</legend>
-              <CampoHora nombre="hora_inicio_1" etiqueta="Desde" valor={horario?.hora_inicio_1} requerido />
-              <CampoHora nombre="hora_fin_1" etiqueta="Hasta" valor={horario?.hora_fin_1} requerido />
+              <CampoHora register={register} nombre="hora_inicio_1" etiqueta="Desde" valor={horario?.hora_inicio_1} requerido />
+              <CampoHora register={register} nombre="hora_fin_1" etiqueta="Hasta" valor={horario?.hora_fin_1} requerido />
             </fieldset>
             <fieldset className="franja-horario">
               <legend>Segunda franja (opcional)</legend>
-              <CampoHora nombre="hora_inicio_2" etiqueta="Desde" valor={horario?.hora_inicio_2} />
-              <CampoHora nombre="hora_fin_2" etiqueta="Hasta" valor={horario?.hora_fin_2} />
+              <CampoHora register={register} nombre="hora_inicio_2" etiqueta="Desde" valor={horario?.hora_inicio_2} />
+              <CampoHora register={register} nombre="hora_fin_2" etiqueta="Hasta" valor={horario?.hora_fin_2} />
             </fieldset>
           </>}
         </>}
