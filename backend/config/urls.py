@@ -23,6 +23,7 @@ urlpatterns = [
     path("api/sedes/", listar_sedes),
     path("api/agenda/", bloqueos.agenda),
     path("api/agenda/diaria/", bloqueos.agenda_diaria),
+    path("api/agenda/historial/", bloqueos.historial_turno),
     path("api/bloqueos/", bloqueos.crear),
     path("api/bloqueos/masivos/vista-previa/", bloqueos.previsualizar_masivos),
     path("api/bloqueos/masivos/confirmar/", bloqueos.confirmar_masivos),

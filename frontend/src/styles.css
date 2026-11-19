@@ -275,3 +275,10 @@ button:disabled { cursor: default; opacity: .55; }
 @media (max-width: 520px) {
   .fila-usuario { grid-template-columns: minmax(0, 1fr); }
 }
+
+.celda:has(.marca-historial) { position: relative; padding-right: 2rem; }
+.marca-historial { position: absolute; right: .55rem; bottom: .25rem; color: var(--morado); }
+.historial-turno { display: grid; gap: .5rem; list-style: none; margin: .8rem 0 0; padding: 0; }
+.historial-turno li { display: grid; gap: .25rem; padding: .6rem; border-radius: .5rem; font-size: .9rem; }
+.historial-turno .reserva { background: #fff3e9; }
+.historial-turno .bloqueo { background: var(--lavanda); }

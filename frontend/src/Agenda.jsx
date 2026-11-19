@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
+import { HistorialTurno } from './HistorialTurno.jsx'
 import { AccionesAgenda } from './AccionesAgenda.jsx'
 import { AccionesTurno, motivosBloqueo } from './AccionesTurno.jsx'
 import { desplazarFecha, fechaValida, horaActual, hoy, importe, labelFecha } from './fechas.js'
@@ -15,6 +16,7 @@ async function consultarAgenda(sede, fecha, signal) {
 function estadoTurno(turno) {
   if (turno.tipo === 'bloqueo') return 'Bloqueo'
   if (turno.tipo === 'reserva') return 'Reserva'
+  if (turno.tipo === 'solo_historial') return 'Historial'
   if (turno.tipo === 'no_disponible') return 'No disponible'
   return 'Libre'
 }
@@ -55,6 +57,7 @@ export function Agenda({ usuario }) {
   const columnas = activa?.columnas || []
   const canchaId = params.get('cancha')
   const hora = params.get('hora')
+  const verHistorial = params.get('historial') === '1'
   const columna = columnas.find(item => String(item.cancha.id) === canchaId)
   const turno = columna?.turnos.find(item => item.hora_inicio === hora)
   const visibles = [...new Set(columnas.flatMap(item => item.turnos.map(t => t.hora_inicio)))].sort()
@@ -90,6 +93,13 @@ export function Agenda({ usuario }) {
   function seleccionar(id, inicio) {
     setAlcance(null)
     setParams({ ...Object.fromEntries(nuevoParams), cancha: id, hora: inicio }, { replace: true })
+  }
+
+  function cambiarHistorial(abrir) {
+    const siguiente = new URLSearchParams(params)
+    if (abrir) siguiente.set('historial', '1')
+    else siguiente.delete('historial')
+    setParams(siguiente, { replace: true })
   }
 
   function cerrarDetalle() {
@@ -182,9 +192,10 @@ export function Agenda({ usuario }) {
                     return <td key={cancha.id}>
                       {celda ? <button ref={seleccionada ? celdaActiva : null}
                         className={`celda ${celda.tipo || 'libre'}`}
-                        aria-label={`${cancha.nombre}, ${inicio}, ${estadoTurno(celda)}`}
+                        aria-label={`${cancha.nombre}, ${inicio}, ${estadoTurno(celda)}${celda.tiene_historial ? ", con historial" : ""}`}
                         aria-pressed={seleccionada} onClick={() => seleccionar(cancha.id, inicio)}>
                         <span>{estadoTurno(celda)}</span>
+                        {celda.tiene_historial && <span className="marca-historial" aria-hidden="true">↶</span>}
                         {celda.organizador && <small>{celda.organizador}</small>}
                         {motivosBloqueo[celda.motivo] && <small>{motivosBloqueo[celda.motivo]}</small>}
                       </button> : <span className="sin-turno" aria-label="Sin turno">—</span>}
@@ -197,7 +208,9 @@ export function Agenda({ usuario }) {
         </div>}
         <aside className="tarjeta detalle" aria-label={periodo ? "Acciones de agenda" : "Detalle del turno"}>
           {periodo ? <AccionesAgenda key={`${llave}:${periodo}`} sede={sede} fecha={fecha}
-            alcance={periodo} cerrar={() => setAlcance(null)} alConfirmar={actualizarLote} /> : turno ? <>
+            alcance={periodo} cerrar={() => setAlcance(null)} alConfirmar={actualizarLote} /> : turno?.tiene_historial && verHistorial
+            ? <HistorialTurno key={`${llave}:${canchaId}:${hora}`} cancha={columna.cancha}
+              fecha={fecha} turno={turno} volver={() => cambiarHistorial(false)} /> : turno ? <>
             <div className="turno-resumen">
               <span>{estadoTurno(turno)}</span>
               <button type="button" aria-label="Cerrar detalle" onClick={cerrarDetalle}>×</button>
@@ -208,6 +221,8 @@ export function Agenda({ usuario }) {
             {turno.importe && <p>{importe(turno.importe)}</p>}
             {turno.motivo && <p>{motivosBloqueo[turno.motivo]}</p>}
             {turno.observaciones && <p>{turno.observaciones}</p>}
+            {turno.tiene_historial && <button className="accion" type="button"
+              onClick={() => cambiarHistorial(true)}>Ver historial</button>}
             {turno.reservable && <Link className="primario accion"
               to={'/agenda/nueva-reserva?' + params.toString()}>Nueva reserva</Link>}
             {(puedeGestionarBloqueo || puedeCancelarReserva) && <AccionesTurno

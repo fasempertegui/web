@@ -30,8 +30,11 @@ class AgendaDiariaForm(forms.Form):
     fecha = forms.DateField(input_formats=["%Y-%m-%d"])
 
 
-class BloqueoForm(AgendaForm):
+class HistorialTurnoForm(AgendaForm):
     hora_inicio = forms.TimeField(input_formats=["%H:%M"])
+
+
+class BloqueoForm(HistorialTurnoForm):
     motivo = forms.ChoiceField(choices=Bloqueo.Motivo.choices)
     evento_esperado = forms.IntegerField(min_value=0)
     observaciones = forms.CharField(required=False)
@@ -64,6 +67,42 @@ def datos_evento(evento, *, es_administrador):
     return datos
 
 
+def eventos_del_historial(usuario):
+    eventos = Evento.objects.filter(estado=Evento.Estado.ANULADO)
+    if not usuario.is_superuser:
+        eventos = eventos.filter(tipo=Evento.Tipo.RESERVA, reserva__organizador=usuario)
+    return eventos
+
+
+@require_safe
+def historial_turno(request):
+    usuario = request.user
+    if not usuario.is_authenticated:
+        return JsonResponse({"error": "Iniciá sesión para consultar el historial."}, status=401)
+    form = HistorialTurnoForm(request.GET)
+    if not form.is_valid():
+        return errores_formulario(form)
+    filtros = form.cleaned_data
+    eventos = eventos_del_historial(usuario).filter(
+        turno__cancha_id=filtros["cancha_id"],
+        turno__fecha=filtros["fecha"],
+        turno__hora_inicio=filtros["hora_inicio"],
+    ).select_related("bloqueo", "reserva__organizador").order_by("-anulado_en", "-pk")
+
+    historial = []
+    for evento in eventos:
+        if evento.tipo == Evento.Tipo.BLOQUEO:
+            historial.append({"tipo": "bloqueo", "detalle": evento.bloqueo.get_motivo_display()})
+        else:
+            reserva = evento.reserva
+            organizador = reserva.organizador
+            fila = {"tipo": "reserva", "detalle": organizador.get_full_name() or organizador.username}
+            if reserva.organizador_id == usuario.pk:
+                fila["reserva_id"] = reserva.pk
+            historial.append(fila)
+    return JsonResponse({"historial": historial})
+
+
 @require_safe
 def agenda_diaria(request):
     usuario = request.user
@@ -93,8 +132,13 @@ def agenda_diaria(request):
     ).exclude(estado=Evento.Estado.ANULADO).select_related(
         "turno", "bloqueo", "reserva__organizador"
     )
+    historial = {}
+    for cancha_id, inicio in eventos_del_historial(usuario).filter(
+        turno__cancha__sede=sede, turno__fecha=fecha,
+    ).values_list("turno__cancha_id", "turno__hora_inicio").order_by().distinct():
+        historial.setdefault(cancha_id, set()).add(inicio)
     por_cancha = {}
-    horas_propias = set()
+    horas_propias = {hora for horas in historial.values() for hora in horas}
     for evento in eventos:
         turno = evento.turno
         propia = evento.tipo == Evento.Tipo.RESERVA and evento.reserva.organizador_id == usuario.pk
@@ -102,7 +146,7 @@ def agenda_diaria(request):
             horas_propias.add(turno.hora_inicio)
         if usuario.is_superuser or propia:
             datos = datos_evento(evento, es_administrador=usuario.is_superuser)
-        elif turno.hora_inicio in horarios:
+        elif turno.hora_inicio in horarios or turno.hora_inicio in historial.get(turno.cancha_id, ()):
             datos = {"hora_inicio": turno.hora_inicio, "hora_fin": turno.hora_fin, "tipo": "no_disponible"}
         else:
             continue
@@ -112,19 +156,25 @@ def agenda_diaria(request):
     for cancha in sede.canchas.all():
         activa = sede.estado == Sede.Estado.ACTIVA and cancha.estado == Cancha.Estado.ACTIVA
         ocupaciones = por_cancha.get(cancha.pk, {})
-        if not activa and not ocupaciones:
+        horas_historial = historial.get(cancha.pk, set())
+        if not activa and not ocupaciones and not horas_historial:
             continue
         turnos = []
-        for inicio in sorted(horarios.keys() | ocupaciones.keys()):
+        for inicio in sorted(horarios.keys() | ocupaciones.keys() | horas_historial):
             futuro = (fecha, inicio) > (hoy, ahora.time())
             if not usuario.is_superuser and not futuro and inicio not in horas_propias:
                 continue
             datos = ocupaciones.get(inicio)
             if datos is None:
-                if not activa:
+                if activa and inicio in horarios:
+                    datos = {"hora_inicio": inicio, "hora_fin": horarios[inicio], "evento_id": 0}
+                elif inicio in horas_historial:
+                    fin = inicio.replace(hour=inicio.hour + 1)
+                    datos = {"hora_inicio": inicio, "hora_fin": fin, "tipo": "solo_historial"}
+                else:
                     continue
-                datos = {"hora_inicio": inicio, "hora_fin": horarios[inicio], "evento_id": 0}
             datos.update(
+                tiene_historial=inicio in horas_historial,
                 en_horario=activa and inicio in horarios,
                 reservable=(
                     activa and inicio in horarios and futuro and inicio not in ocupaciones
