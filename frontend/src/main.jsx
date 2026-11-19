@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api } from './api.js'
 import { NuevaReserva } from './NuevaReserva.jsx'
-import { MisReservas } from "./MisReservas.jsx"
 import { Notificaciones } from './Notificaciones.jsx'
 import { Perfil } from "./Perfil.jsx"
 import { Usuarios } from './Usuarios.jsx'
@@ -13,6 +12,7 @@ import { Registro } from './Registro.jsx'
 import './tema.css'
 
 const Agenda = lazy(() => import('./Agenda.jsx'))
+const MisReservas = lazy(() => import('./MisReservas.jsx'))
 const NavegacionAdmin = lazy(() => import('./NavegacionAdmin.jsx'))
 
 function Marca() {
@@ -138,7 +138,9 @@ function App() {
         <Agenda usuario={usuario} />
       </Suspense>} />
       <Route path="/agenda/nueva-reserva" element={<NuevaReserva usuario={usuario} />} />
-      <Route path="/mis-reservas" element={<MisReservas />} />
+      <Route path="/mis-reservas" element={<Suspense fallback={<main className="espera" role="status">Cargando reservas…</main>}>
+        <MisReservas />
+      </Suspense>} />
       <Route path="/notificaciones" element={<Notificaciones alCargar={setSinLeer} />} />
       <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
       {usuario.es_administrador && <Route path="/usuarios"

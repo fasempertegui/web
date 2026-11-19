@@ -1,0 +1,136 @@
+@layer components {
+  .mis-reservas-superficie, .mis-reservas-sheet {
+    font-family: "DM Sans Variable", "Segoe UI", sans-serif;
+  }
+
+  .mis-reservas-superficie {
+    min-height: calc(100svh - 4rem);
+    background: radial-gradient(ellipse at 15% 0%, #ede2f7, transparent 36rem), #f9f7fb;
+  }
+
+  .mis-reservas-contenido {
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: clamp(1rem, 2.5vw, 2.25rem);
+  }
+
+  .mis-reservas-titulo {
+    font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
+    letter-spacing: -.035em;
+  }
+
+  .mis-reservas-vista { display: grid; align-items: start; gap: 1rem; }
+  .mis-reservas-escritorio { grid-template-columns: minmax(0, 1fr) minmax(16.5rem, 19rem); }
+  .mis-reservas-panel { position: sticky; top: 1rem; }
+
+  .mis-reservas-cantidad {
+    padding: .04rem .37rem;
+    border-radius: 1rem;
+    background: #eee5f4;
+    color: #5b346e;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mis-reservas-fila {
+    display: grid;
+    grid-template-columns: 4.3rem minmax(0, 1fr) auto auto 1rem;
+    align-items: center;
+    gap: .75rem;
+    width: 100%;
+    padding: .7rem .9rem;
+    border: 0;
+    border-radius: 0;
+    color: #231b2e;
+    background: transparent;
+    text-align: left;
+  }
+
+  .mis-reservas-fila:focus-visible { outline-offset: -3px; }
+  .mis-reservas-fila:hover { background: #f8f3fa; }
+  .mis-reservas-fila[aria-pressed="true"] { background: #f2eaf7; box-shadow: inset .2rem 0 #602783; }
+
+  .mis-reservas-fecha {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    min-height: 3rem;
+    padding: .25rem;
+    border: 1px solid #eadff0;
+    border-radius: .65rem;
+    background: #f7f1fa;
+    color: #542570;
+    line-height: 1.15;
+  }
+
+  .mis-reservas-fecha strong { font-size: 1.12rem; font-variant-numeric: tabular-nums; }
+  .mis-reservas-fecha small { font-size: .72rem; font-weight: 600; }
+  .mis-reservas-cancha { min-width: 0; overflow-wrap: anywhere; }
+  .mis-reservas-cancha span { display: block; color: #62586e; font-size: .8125rem; font-weight: 500; }
+  .mis-reservas-hora { color: #55495f; font-size: .875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mis-reservas-flecha { width: 1rem; color: #786487; }
+
+  .mis-reservas-estado[data-estado="programado"] {
+    --reserva-borde: #b9dbc9;
+    --reserva-fondo: #eef8f3;
+    --reserva-texto: #225b47;
+  }
+
+  .mis-reservas-estado[data-estado="anulado"] {
+    --reserva-borde: #ebc9d1;
+    --reserva-fondo: #fbf0f3;
+    --reserva-texto: #8a324d;
+  }
+
+  .mis-reservas-estado[data-estado="finalizado"] {
+    --reserva-borde: #dfd3e8;
+    --reserva-fondo: #f2edf6;
+    --reserva-texto: #5d4572;
+  }
+
+  .mis-reservas-icono {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    border-radius: .75rem;
+    background: #f0e9f5;
+    color: #602783;
+  }
+
+  .mis-reservas-resumen {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: .65rem;
+    padding: .85rem;
+    border-radius: .8rem;
+    background: #f2eaf7;
+    color: #34104e;
+  }
+
+  .mis-reservas-datos { margin: .5rem 0 0; }
+  .mis-reservas-datos div { padding: .55rem 0; border-bottom: 1px solid #ede6f1; }
+  .mis-reservas-datos dt { margin-bottom: .15rem; color: #5c4b67; font-size: .8125rem; }
+  .mis-reservas-datos dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+
+  .mis-reservas-confirmacion {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: .75rem 0 0;
+    color: #225b47;
+    font-size: .9rem;
+  }
+
+  .mis-reservas-confirmacion svg { width: 1rem; }
+
+  @media (max-width: 600px) {
+    .mis-reservas-fila { grid-template-columns: 3.65rem minmax(0, 1fr) auto; gap: .2rem .55rem; padding-inline: .65rem; }
+    .mis-reservas-fecha { grid-row: span 2; }
+    .mis-reservas-fecha small { font-size: .68rem; white-space: nowrap; }
+    .mis-reservas-hora { grid-column: 2; grid-row: 2; }
+    .mis-reservas-fila .mis-reservas-estado { grid-column: 3; grid-row: 1; }
+    .mis-reservas-flecha { display: none; }
+  }
+}
