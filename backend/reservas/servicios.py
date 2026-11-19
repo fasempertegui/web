@@ -57,9 +57,9 @@ def cancelar_reserva(actor, reserva_id, motivo):
     evento = Evento.objects.select_for_update().get(pk=reserva.evento_id)
     ahora = timezone.localtime()
     if evento.estado != Evento.Estado.PROGRAMADO:
-        raise ConflictoReserva("Sólo se pueden anular reservas programadas.")
+        raise ConflictoReserva("Sólo se pueden cancelar reservas programadas.")
     if (turno.fecha, turno.hora_inicio) <= (ahora.date(), ahora.time()):
-        raise ConflictoReserva("Sólo se puede anular una reserva antes de su inicio.")
+        raise ConflictoReserva("Sólo se puede cancelar una reserva antes de su inicio.")
     evento.estado = Evento.Estado.ANULADO
     evento.anulado_por = actor
     evento.anulado_en = ahora

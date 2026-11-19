@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { api } from './api.js'
 import { horaActual, hoy, labelFecha } from './fechas.js'
-import { motivosBloqueo } from './BloqueoTurno.jsx'
+import { motivosBloqueo } from './AccionesTurno.jsx'
 
 const etiquetas = {
   bloquear: 'Bloquear',

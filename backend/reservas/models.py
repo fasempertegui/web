@@ -49,7 +49,7 @@ class Evento(models.Model):
 
     class Estado(models.TextChoices):
         PROGRAMADO = "programado", "Programado"
-        ANULADO = "anulado", "Anulado"
+        ANULADO = "anulado", "Cancelado"
         FINALIZADO = "finalizado", "Finalizado"
 
     id = models.BigAutoField(primary_key=True)
@@ -115,7 +115,7 @@ class Evento(models.Model):
                     )
                 ),
                 name="evento_estado_valido",
-                violation_error_message="Los datos de anulación y finalización deben corresponder al estado del evento.",
+                violation_error_message="Los datos de cancelación y finalización deben corresponder al estado del evento.",
             ),
         ]
         verbose_name = "evento"

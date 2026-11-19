@@ -7,28 +7,26 @@ export const motivosBloqueo = {
   mantenimiento: 'Mantenimiento',
 }
 
-export function BloqueoTurno({ turno, canchaId, fecha, alGuardar }) {
-  const [abierto, setAbierto] = useState(false)
+export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCancelar, alGuardar }) {
+  const [operacion, setOperacion] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
-  const liberar = turno.tipo === 'bloqueo'
-  const reemplazar = turno.tipo === 'reserva'
-  const accion = liberar ? 'Liberar bloqueo' : reemplazar ? 'Cancelar y bloquear' : 'Bloquear turno'
+  const bloquear = operacion === 'bloquear'
+  const cancelar = operacion === 'cancelar'
+  const tituloBloqueo = turno.tipo === 'reserva' ? 'Cancelar y bloquear' : 'Bloquear turno'
 
   async function confirmar(evento) {
     evento.preventDefault()
     const campos = new FormData(evento.currentTarget)
     const motivo = campos.get('motivo').trim()
-    if (liberar && motivo.length < 5) {
+    if (!bloquear && motivo.length < 5) {
       setError('Ingresá un motivo de al menos 5 caracteres.')
       return
     }
     setGuardando(true)
     setError('')
     try {
-      if (liberar) {
-        await api(`bloqueos/${turno.bloqueo_id}/liberar/`, { datos: { motivo } })
-      } else {
+      if (bloquear) {
         await api('bloqueos/', { datos: {
           cancha_id: String(canchaId),
           fecha,
@@ -37,9 +35,15 @@ export function BloqueoTurno({ turno, canchaId, fecha, alGuardar }) {
           motivo,
           observaciones: campos.get('observaciones'),
         } })
+        await alGuardar('Turno bloqueado.')
+      } else if (cancelar) {
+        await api(`reservas/${turno.reserva_id}/cancelar/`, { datos: { motivo } })
+        await alGuardar('Reserva cancelada.')
+      } else {
+        await api(`bloqueos/${turno.bloqueo_id}/liberar/`, { datos: { motivo } })
+        await alGuardar('Bloqueo liberado.')
       }
-      await alGuardar(liberar ? 'Bloqueo liberado.' : 'Turno bloqueado.')
-      setAbierto(false)
+      setOperacion(null)
     } catch (fallo) {
       setError(fallo.message)
     } finally {
@@ -47,13 +51,18 @@ export function BloqueoTurno({ turno, canchaId, fecha, alGuardar }) {
     }
   }
 
-  if (!abierto) {
-    return <button type="button" className="accion" onClick={() => setAbierto(true)}>{accion}</button>
-  }
+  if (!operacion) return <>
+    {puedeCancelar && <button type="button" className="accion"
+      onClick={() => setOperacion('cancelar')}>Cancelar reserva</button>}
+    {puedeBloquear && <button type="button" className="accion" onClick={() => {
+      setOperacion(turno.tipo === 'bloqueo' ? 'liberar' : 'bloquear')
+    }}>{turno.tipo === 'bloqueo' ? 'Liberar bloqueo' : tituloBloqueo}</button>}
+  </>
 
   return <form className="formulario-bloqueo" onSubmit={confirmar}>
-    {reemplazar && <p>Al confirmar, se cancela la reserva actual y se bloquea el turno.</p>}
-    {liberar ? <label>Motivo de liberación
+    {bloquear && turno.tipo === 'reserva' && <p>Al confirmar, se cancela la reserva actual y se bloquea el turno.</p>}
+    {cancelar && <p>Al confirmar, se cancela la reserva y el turno vuelve a quedar disponible si está dentro del horario de atención.</p>}
+    {!bloquear ? <label>{cancelar ? 'Motivo de cancelación' : 'Motivo de liberación'}
       <textarea name="motivo" rows={3} required minLength={5} disabled={guardando} />
     </label> : <>
       <label>Motivo del bloqueo
@@ -72,10 +81,10 @@ export function BloqueoTurno({ turno, canchaId, fecha, alGuardar }) {
     <div className="acciones">
       <button type="button" disabled={guardando} onClick={() => {
         setError('')
-        setAbierto(false)
+        setOperacion(null)
       }}>Volver</button>
       <button className="primario" disabled={guardando}>
-        {guardando ? 'Guardando…' : liberar ? 'Confirmar liberación' : accion}
+        {guardando ? 'Guardando…' : bloquear ? tituloBloqueo : cancelar ? 'Confirmar cancelación' : 'Confirmar liberación'}
       </button>
     </div>
   </form>

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
 import { AccionesAgenda } from './AccionesAgenda.jsx'
-import { BloqueoTurno, motivosBloqueo } from './BloqueoTurno.jsx'
+import { AccionesTurno, motivosBloqueo } from './AccionesTurno.jsx'
 import { desplazarFecha, fechaValida, horaActual, hoy, importe, labelFecha } from './fechas.js'
 
 const inicioOperaciones = '2026-08-01'
@@ -112,6 +112,8 @@ export function Agenda({ usuario }) {
   const limiteBloqueo = new Date(hoy() + 'T12:00:00Z')
   limiteBloqueo.setUTCMonth(limiteBloqueo.getUTCMonth() + 3, 0)
   const enHorario = sede && horariosSede(sede, fecha).some(item => item.hora_inicio === hora)
+  const puedeCancelarReserva = administrador && turnoFuturo &&
+    turno.tipo === 'reserva' && turno.estado === 'programado'
   const puedeGestionarBloqueo = administrador && turnoFuturo && (
     (turno.tipo === 'bloqueo' && turno.estado === 'programado') ||
     (enHorario && fecha <= limiteBloqueo.toISOString().slice(0, 10) &&
@@ -122,7 +124,7 @@ export function Agenda({ usuario }) {
     setAviso({ llave, mensaje })
     try {
       const datos = await api(`agenda/?cancha_id=${canchaId}&fecha=${fecha}`)
-      setConsulta(actual => actual?.llave === llave ? {
+      setConsulta(actual => actual?.llave === llave && actual.columnas ? {
         ...actual,
         columnas: actual.columnas.map(item => String(item.cancha.id) === canchaId
           ? { ...item, turnos: datos.turnos } : item),
@@ -271,9 +273,10 @@ export function Agenda({ usuario }) {
             {turno.observaciones && <p>{turno.observaciones}</p>}
             {reservarDisponible() && <Link className="primario accion"
               to={'/agenda/nueva-reserva?' + params.toString()}>Nueva reserva</Link>}
-            {puedeGestionarBloqueo && <BloqueoTurno
+            {(puedeGestionarBloqueo || puedeCancelarReserva) && <AccionesTurno
               key={`${llave}:${canchaId}:${hora}:${turno.evento_id}`}
-              turno={turno} canchaId={canchaId} fecha={fecha} alGuardar={actualizarTurno} />}
+              turno={turno} canchaId={canchaId} fecha={fecha} alGuardar={actualizarTurno}
+              puedeBloquear={puedeGestionarBloqueo} puedeCancelar={puedeCancelarReserva} />}
           </> : <>
             <h3>Elegí un turno</h3>
             <p>Seleccioná una celda para consultar su detalle.</p>

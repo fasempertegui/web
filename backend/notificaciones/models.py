@@ -4,7 +4,7 @@ from django.db import models
 class Notificacion(models.Model):
     class Tipo(models.TextChoices):
         RESERVA_CREADA = "reserva_creada", "Tu reserva fue confirmada."
-        RESERVA_ANULADA = "reserva_anulada", "Tu reserva fue anulada. Consultá el motivo en el detalle."
+        RESERVA_ANULADA = "reserva_anulada", "Tu reserva fue cancelada. Consultá el motivo en el detalle."
 
     reserva = models.ForeignKey(
         "reservas.Reserva", on_delete=models.PROTECT, related_name="notificaciones"
