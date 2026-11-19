@@ -1,0 +1,34 @@
+name: turnero-web
+
+x-backend: &backend
+  image: turnero-web-backend
+  build: .
+  environment:
+    TURNERO_DB_PATH: /datos/turnero.sqlite3
+  volumes:
+    - datos:/datos
+
+services:
+  migraciones:
+    <<: *backend
+    command: ["python", "manage.py", "migrate", "--noinput"]
+
+  web:
+    <<: *backend
+    depends_on:
+      migraciones:
+        condition: service_completed_successfully
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload"]
+    ports:
+      - "127.0.0.1:${TURNERO_PORT:-8001}:8000"
+
+  finalizador:
+    <<: *backend
+    depends_on:
+      migraciones:
+        condition: service_completed_successfully
+    command: ["python", "manage.py", "finalizar_reservas", "--intervalo", "60"]
+    restart: unless-stopped
+
+volumes:
+  datos:

@@ -69,7 +69,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'turnero.sqlite3',
+        'NAME': os.environ.get('TURNERO_DB_PATH', BASE_DIR / 'turnero.sqlite3'),
         'OPTIONS': {'transaction_mode': 'IMMEDIATE'},
     }
 }
