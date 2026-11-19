@@ -30,5 +30,14 @@ services:
     command: ["python", "manage.py", "finalizar_reservas", "--intervalo", "60"]
     restart: unless-stopped
 
+  frontend:
+    build: ./frontend
+    depends_on:
+      - web
+    environment:
+      TURNERO_API_URL: http://web:8000
+    ports:
+      - "127.0.0.1:${TURNERO_FRONTEND_PORT:-5173}:5173"
+
 volumes:
   datos:
