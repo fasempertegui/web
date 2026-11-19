@@ -1,0 +1,33 @@
+@layer components {
+  .perfil-superficie, .perfil-edicion {
+    font-family: "DM Sans Variable", "Segoe UI", sans-serif;
+  }
+
+  .perfil-superficie {
+    min-height: calc(100svh - 4rem);
+    background: radial-gradient(ellipse at 15% 0%, #ece0f6, transparent 60%), #faf8fc;
+  }
+
+  .perfil-titulo {
+    font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
+    letter-spacing: -.035em;
+  }
+
+  .perfil-identidad {
+    background: linear-gradient(145deg, #602783, #34104e 80%);
+  }
+
+  .perfil-identidad::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 19rem;
+    aspect-ratio: 1;
+    right: -10rem;
+    bottom: -8rem;
+    border: 1px solid rgb(255 255 255 / .24);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.4rem rgb(255 255 255 / .06), 0 0 0 2.8rem rgb(255 255 255 / .045);
+    pointer-events: none;
+  }
+}
