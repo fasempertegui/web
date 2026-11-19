@@ -1,14 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { CalendarClock, CalendarDays, CloudRain, History, Plus, Settings2, X } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { PanelDetalle } from '@/components/PanelDetalle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useConsulta } from '@/hooks/use-consulta'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { GrillaAgenda, estadoTurno } from './GrillaAgenda.jsx'
 import { FiltrosAgenda } from './FiltrosAgenda.jsx'
@@ -22,16 +23,8 @@ import './agenda.css'
 
 const inicioOperaciones = '2026-08-01'
 
-async function consultarAgenda(sede, fecha, signal) {
-  const { columnas } = await api(`agenda/diaria/?sede_id=${sede.id}&fecha=${fecha}`, { signal })
-  return columnas
-}
-
 export default function Agenda({ usuario }) {
   const [params, setParams] = useSearchParams()
-  const [sedes, setSedes] = useState(null)
-  const [errorSedes, setErrorSedes] = useState('')
-  const [consulta, setConsulta] = useState(null)
   const [aviso, setAviso] = useState(null)
   const [alcance, setAlcance] = useState(null)
   const disparadorPanel = useRef(null)
@@ -40,31 +33,17 @@ export default function Agenda({ usuario }) {
   const movil = useIsMobile(1024)
   const fechaHoy = hoy()
   const fecha = fechaValida(params.get('fecha')) ? params.get('fecha') : fechaHoy
+  const { datos: catalogoSedes, error: errorSedes, cargando: cargandoSedes } = useConsulta('sedes/')
+  const sedes = catalogoSedes?.sedes || null
   const sede = sedes?.find(item => String(item.id) === params.get('sede')) || sedes?.[0]
   const llave = sede ? `${sede.id}:${fecha}` : ''
+  const rutaAgenda = sede ? `agenda/diaria/?sede_id=${sede.id}&fecha=${fecha}` : null
+  const {
+    datos: agendaDiaria, error: errorAgenda, cargando: cargandoAgenda, setDatos: setAgendaDiaria,
+  } = useConsulta(rutaAgenda)
   const administrador = usuario.es_administrador
 
-  useEffect(() => {
-    const control = new AbortController()
-    api('sedes/', { signal: control.signal })
-      .then(datos => setSedes(datos.sedes))
-      .catch(error => { if (error.name !== 'AbortError') setErrorSedes(error.message) })
-    return () => control.abort()
-  }, [])
-
-  useEffect(() => {
-    if (!sede) return
-    const control = new AbortController()
-    consultarAgenda(sede, fecha, control.signal)
-      .then(columnas => setConsulta({ llave, columnas }))
-      .catch(error => {
-        if (error.name !== 'AbortError') setConsulta({ llave, error: error.message })
-      })
-    return () => control.abort()
-  }, [sede, fecha, administrador, llave])
-
-  const activa = consulta?.llave === llave ? consulta : null
-  const columnas = activa?.columnas || []
+  const columnas = agendaDiaria?.columnas || []
   const canchaId = params.get('cancha')
   const hora = params.get('hora')
   const verHistorial = params.get('historial') === '1'
@@ -87,8 +66,8 @@ export default function Agenda({ usuario }) {
   async function refrescarAgenda(mensaje) {
     setAviso({ llave, mensaje })
     try {
-      const columnas = await consultarAgenda(sede, fecha)
-      setConsulta(actual => actual?.llave === llave ? { llave, columnas } : actual)
+      const datos = await api(rutaAgenda)
+      setAgendaDiaria(datos)
     } catch (fallo) {
       setAviso({ llave, mensaje: mensaje + ' No se pudo actualizar la agenda. ' + fallo.message, error: true })
     }
@@ -188,9 +167,13 @@ export default function Agenda({ usuario }) {
         <p>Seleccioná una celda para ver sus datos y las acciones disponibles.</p>
       </div>
 
-  return <main className="agenda-superficie w-full flex-1" onKeyDown={evento => {
-    if (!movil && evento.key === 'Escape' && (turno || periodo)) cerrarPanel()
-  }}>
+  function recuperarFocoPanel() {
+    if (!disparadorPanel.current?.isConnected) return false
+    disparadorPanel.current.focus()
+    return true
+  }
+
+  return <main className="agenda-superficie w-full flex-1">
     <div className="contenido-pagina">
       <header className="agenda-encabezado">
         <h1 className="agenda-titulo">Agenda</h1>
@@ -220,7 +203,7 @@ export default function Agenda({ usuario }) {
       </header>
 
       {errorSedes && <p className="error" role="alert">{errorSedes}</p>}
-      {sedes === null && !errorSedes && <Skeleton className="h-24 rounded-2xl" role="status" aria-label="Cargando sedes" />}
+      {cargandoSedes && <Skeleton className="h-24 rounded-2xl" role="status" aria-label="Cargando sedes" />}
       {sedes?.length === 0 && <Card className="agenda-estado-vacio border-border gap-3 p-6 shadow-none">
         <h2 className="agenda-titulo">Todavía no hay sedes</h2>
         {administrador && <Button asChild className="w-fit no-underline">
@@ -233,11 +216,11 @@ export default function Agenda({ usuario }) {
           maximo={maximo} cambiarVista={cambiarVista} />
         {aviso?.llave === llave && <p className={aviso.error ? 'error' : 'reserva-mensaje'}
           role={aviso.error ? 'alert' : 'status'}>{aviso.mensaje}</p>}
-        {activa?.error && <p className="error" role="alert">{activa.error}</p>}
+        {errorAgenda && <p className="error" role="alert">{errorAgenda}</p>}
 
         <div className={movil ? 'agenda-vista' : 'agenda-vista agenda-vista-escritorio'}>
-          {!activa ? <Skeleton className="h-72 rounded-2xl" role="status" aria-label="Cargando agenda" />
-          : activa.error ? <div />
+          {cargandoAgenda ? <Skeleton className="h-72 rounded-2xl" role="status" aria-label="Cargando agenda" />
+          : errorAgenda ? <div />
           : visibles.length > 0 ? <GrillaAgenda
             columnas={columnas} horas={visibles} fecha={fecha} sede={sede.nombre}
             administrador={administrador} canchaId={canchaId} hora={hora} seleccionar={seleccionar} />
@@ -248,27 +231,19 @@ export default function Agenda({ usuario }) {
               : 'No hay turnos para mostrar en esta fecha.'}</p>
           </Card>}
 
-          {movil ? <Sheet open={Boolean(periodo || turno)} onOpenChange={abierto => {
-            if (!abierto) cerrarPanel()
-          }}>
-            <SheetContent side="bottom" className="agenda-sheet max-h-[85svh] gap-0 overflow-y-auto rounded-t-xl bg-card"
-              onCloseAutoFocus={evento => {
-                if (disparadorPanel.current?.isConnected) {
-                  evento.preventDefault()
-                  disparadorPanel.current.focus()
-                }
-              }}>
-              <SheetHeader className="sr-only">
-                <SheetTitle>{periodo ? 'Acciones de agenda' : 'Detalle del turno'}</SheetTitle>
-                <SheetDescription>Información y acciones del turno seleccionado.</SheetDescription>
-              </SheetHeader>
-              <div className="detalle px-4 pt-12 pb-5">{contenidoPanel}</div>
-            </SheetContent>
-          </Sheet> : (activa?.columnas || periodo) && <Card role="complementary"
-            aria-label={periodo ? 'Acciones de agenda' : 'Detalle del turno'}
-            className="agenda-panel gap-0 border-border rounded-2xl py-0 shadow-none">
-            <CardContent className="detalle px-4 py-4">{contenidoPanel}</CardContent>
-          </Card>}
+          <PanelDetalle
+            movil={movil}
+            abierto={Boolean(periodo || turno)}
+            cerrar={cerrarPanel}
+            recuperarFoco={recuperarFocoPanel}
+            mostrarEnEscritorio={Boolean(agendaDiaria || periodo)}
+            titulo={periodo ? 'Acciones de agenda' : 'Detalle del turno'}
+            descripcion="Información y acciones del turno seleccionado."
+            clasePanel="agenda-panel"
+            claseSheet="agenda-sheet"
+            claseContenido="detalle">
+            {contenidoPanel}
+          </PanelDetalle>
         </div>
       </>}
     </div>

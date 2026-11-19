@@ -8,14 +8,13 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { inicialesUsuario, nombreCompleto } from './usuarios.js'
 import './navegacion-usuario.css'
 
 export default function NavegacionUsuario({ agenda, usuario, sinLeer, cerrar }) {
   const { pathname } = useLocation()
-  const nombres = [usuario.nombre, usuario.apellido].filter(Boolean)
-  const nombre = nombres.join(' ') || usuario.nombre_usuario
-  const iniciales = (nombres.length ? nombres.map(parte => parte[0]).join('') : nombre.slice(0, 2))
-    .toLocaleUpperCase('es-AR')
+  const nombre = nombreCompleto(usuario)
+  const iniciales = inicialesUsuario(usuario)
 
   const enlaces = [
     { ruta: '/agenda', destino: agenda, titulo: 'Agenda', Icono: CalendarDays },

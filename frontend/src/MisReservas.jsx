@@ -1,15 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { CalendarDays, CheckCircle2, ChevronRight, Clock, MapPin, Plus, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router-dom'
+import { PanelDetalle } from '@/components/PanelDetalle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { useConsulta } from '@/hooks/use-consulta'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { api } from './api.js'
 import { horaActual, hoy, importe, labelFecha, labelMesCorto } from './fechas.js'
@@ -52,8 +53,7 @@ function ListaReservas({ reservas, seleccion, seleccionar, guardando, mensajeVac
 }
 
 export default function MisReservas() {
-  const [reservas, setReservas] = useState(null)
-  const [errorConsulta, setErrorConsulta] = useState('')
+  const { datos, error: errorConsulta, cargando, setDatos } = useConsulta('reservas/')
   const [errorCancelacion, setErrorCancelacion] = useState('')
   const [params, setParams] = useSearchParams()
   const seleccion = Number(params.get('reserva')) || null
@@ -63,14 +63,7 @@ export default function MisReservas() {
   const disparador = useRef(null)
   const pestanaActiva = useRef(null)
   const movil = useIsMobile(1024)
-
-  useEffect(() => {
-    const control = new AbortController()
-    api('reservas/', { signal: control.signal })
-      .then(datos => { if (!control.signal.aborted) setReservas(datos.reservas) })
-      .catch(fallo => { if (fallo.name !== 'AbortError') setErrorConsulta(fallo.message) })
-    return () => control.abort()
-  }, [])
+  const reservas = datos?.reservas || null
 
   const ahora = `${hoy()}T${horaActual()}`
   const detalle = reservas?.find(reserva => reserva.id === seleccion)
@@ -116,7 +109,10 @@ export default function MisReservas() {
     setErrorCancelacion('')
     try {
       const { reserva } = await api(`reservas/${seleccion}/cancelar/`, { datos: { motivo } })
-      setReservas(actuales => actuales.map(item => item.id === reserva.id ? reserva : item))
+      setDatos(actual => ({
+        ...actual,
+        reservas: actual.reservas.map(item => item.id === reserva.id ? reserva : item),
+      }))
       setCancelando(false)
       setMensaje('Reserva cancelada.')
     } catch (fallo) {
@@ -164,9 +160,7 @@ export default function MisReservas() {
     </form>}
   </>
 
-  return <main className="mis-reservas-superficie w-full flex-1" onKeyDown={evento => {
-    if (!movil && detalle && evento.key === 'Escape') cerrarDetalle()
-  }}>
+  return <main className="mis-reservas-superficie w-full flex-1">
     <div className="contenido-pagina">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="mis-reservas-titulo m-0 text-4xl leading-none font-semibold sm:text-5xl">Mis reservas</h1>
@@ -175,7 +169,7 @@ export default function MisReservas() {
         </Button>}
       </header>
       {errorConsulta && <p className="error" role="alert">{errorConsulta}</p>}
-      {!reservas && !errorConsulta && <Skeleton className="h-52 rounded-2xl" role="status" aria-label="Cargando reservas" />}
+      {cargando && <Skeleton className="h-52 rounded-2xl" role="status" aria-label="Cargando reservas" />}
       {reservas?.length === 0 && <Card className="items-start gap-3 rounded-2xl border-border p-6 shadow-none">
         <div className="mis-reservas-icono"><CalendarDays aria-hidden="true" /></div>
         <h2 className="mis-reservas-titulo m-0 text-xl">Todavía no tenés reservas</h2>
@@ -208,26 +202,22 @@ export default function MisReservas() {
           </Tabs>
         </Card>
 
-        {movil ? <Sheet open={Boolean(detalle)} onOpenChange={abierta => { if (!abierta) cerrarDetalle() }}>
-          <SheetContent side="bottom" showCloseButton={!guardando}
-            className="mis-reservas-sheet max-h-[85svh] gap-0 overflow-y-auto rounded-t-xl bg-card"
-            onCloseAutoFocus={evento => { evento.preventDefault(); recuperarFoco() }}>
-            <SheetHeader className="sr-only">
-              <SheetTitle>Detalle de la reserva</SheetTitle>
-              <SheetDescription>Información y acciones disponibles para la reserva seleccionada.</SheetDescription>
-            </SheetHeader>
-            <div className="px-4 pt-12 pb-5">{contenido}</div>
-          </SheetContent>
-        </Sheet> : <Card role="complementary" aria-label="Detalle de la reserva"
-          className="mis-reservas-panel gap-0 rounded-2xl border-border py-0 shadow-none">
-          <CardContent className="p-4">
-            {contenido || <>
-              <div className="mis-reservas-icono"><Clock aria-hidden="true" /></div>
-              <h2 className="mis-reservas-titulo mt-3 mb-1 text-lg">Elegí una reserva</h2>
-              <p className="m-0 text-sm text-muted-foreground">Seleccioná una fila para ver los datos del turno.</p>
-            </>}
-          </CardContent>
-        </Card>}
+        <PanelDetalle
+          movil={movil}
+          abierto={Boolean(detalle)}
+          cerrar={cerrarDetalle}
+          recuperarFoco={recuperarFoco}
+          bloqueado={guardando}
+          titulo="Detalle de la reserva"
+          descripcion="Información y acciones disponibles para la reserva seleccionada."
+          clasePanel="mis-reservas-panel"
+          claseSheet="mis-reservas-sheet">
+          {contenido || <>
+            <div className="mis-reservas-icono"><Clock aria-hidden="true" /></div>
+            <h2 className="mis-reservas-titulo mt-3 mb-1 text-lg">Elegí una reserva</h2>
+            <p className="m-0 text-sm text-muted-foreground">Seleccioná una fila para ver los datos del turno.</p>
+          </>}
+        </PanelDetalle>
       </div>}
     </div>
   </main>

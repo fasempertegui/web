@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Bell, CalendarCheck, CalendarX, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useConsulta } from '@/hooks/use-consulta'
 import { api } from './api.js'
 import { labelFechaHora } from './fechas.js'
 import './notificaciones.css'
@@ -46,31 +47,20 @@ export default function Notificaciones({ alCargar }) {
   const navegar = useNavigate()
   const [filtro, setFiltro] = useState('todas')
   const [pagina, setPagina] = useState(1)
-  const [version, refrescar] = useState(0)
-  const [bandeja, setBandeja] = useState(null)
+  const [sinLeer, setSinLeer] = useState(0)
   const [error, setError] = useState('')
   const [accion, setAccion] = useState(null)
   const [mensaje, setMensaje] = useState('')
-  const consulta = `${filtro}:${pagina}:${version}`
-  const activa = bandeja?.consulta === consulta ? bandeja : null
-  const sinLeer = bandeja?.sin_leer || 0
-  const ocupado = accion !== null
-
-  useEffect(() => {
-    const control = new AbortController()
-    api(`notificaciones/?estado=${filtro}&pagina=${pagina}`, { signal: control.signal })
-      .then(datos => {
-        if (control.signal.aborted) return
-        setBandeja({ ...datos, consulta })
+  const { datos: activa, error: errorConsulta, cargando, recargar } = useConsulta(
+    `notificaciones/?estado=${filtro}&pagina=${pagina}`,
+    {
+      alExito: datos => {
+        setSinLeer(datos.sin_leer)
         alCargar(datos.sin_leer)
-      })
-      .catch(fallo => {
-        if (fallo.name !== 'AbortError') {
-          setBandeja(anterior => ({ consulta, error: fallo.message, sin_leer: anterior?.sin_leer }))
-        }
-      })
-    return () => control.abort()
-  }, [consulta, filtro, pagina, alCargar])
+      },
+    },
+  )
+  const ocupado = accion !== null
 
   function cambiarFiltro(valor) {
     if (ocupado) return
@@ -102,10 +92,10 @@ export default function Notificaciones({ alCargar }) {
     try {
       const { marcadas } = await api('notificaciones/leer-todas/', { datos: {} })
       const restantes = Math.max(0, sinLeer - marcadas)
-      setBandeja(anterior => ({ ...anterior, sin_leer: restantes }))
+      setSinLeer(restantes)
       alCargar(restantes)
       setPagina(1)
-      refrescar(valor => valor + 1)
+      recargar()
       setMensaje('Notificaciones marcadas como leídas.')
     } catch (fallo) {
       setError(fallo.message)
@@ -119,12 +109,12 @@ export default function Notificaciones({ alCargar }) {
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="notificaciones-titulo m-0 text-4xl leading-none font-semibold sm:text-5xl">Notificaciones</h1>
         {sinLeer > 0 && <Button type="button" variant="outline"
-          className="h-10 border-border bg-card" disabled={ocupado || !activa || Boolean(activa.error)} onClick={leerTodas}>
+          className="h-10 border-border bg-card" disabled={ocupado || cargando || Boolean(errorConsulta)} onClick={leerTodas}>
           <CheckCheck aria-hidden="true" />
           {accion === 'todas' ? 'Marcando…' : 'Marcar todas como leídas'}
         </Button>}
       </header>
-      {(error || activa?.error) && <p className="error" role="alert">{error || activa.error}</p>}
+      {(error || errorConsulta) && <p className="error" role="alert">{error || errorConsulta}</p>}
       {mensaje && <p className="notificaciones-confirmacion" role="status"><CheckCheck aria-hidden="true" />{mensaje}</p>}
 
       <Card className="min-w-0 gap-0 overflow-hidden rounded-2xl border-border py-0 shadow-none">
@@ -140,13 +130,13 @@ export default function Notificaciones({ alCargar }) {
           </div>
 
           {filtros.map(item => <TabsContent key={item.id} value={item.id}>
-            {!activa ? <div className="grid gap-3 p-4" role="status" aria-label="Cargando notificaciones">
+            {cargando ? <div className="grid gap-3 p-4" role="status" aria-label="Cargando notificaciones">
               <Skeleton className="h-11 w-full rounded-lg" />
               <Skeleton className="h-11 w-full rounded-lg" />
-            </div> : activa.error ? <div className="px-4 py-5">
+            </div> : errorConsulta ? <div className="px-4 py-5">
               <Button type="button" variant="outline" className="border-border"
-                onClick={() => { setPagina(1); refrescar(valor => valor + 1) }}>Volver a consultar</Button>
-            </div> : activa.notificaciones.length > 0 ? <>
+                onClick={() => { setPagina(1); recargar() }}>Volver a consultar</Button>
+            </div> : activa?.notificaciones.length > 0 ? <>
               <ul className="m-0 list-none divide-y divide-border p-0">
                 {activa.notificaciones.map(aviso => <FilaAviso key={aviso.id} aviso={aviso} abrir={abrir} ocupado={ocupado} />)}
               </ul>

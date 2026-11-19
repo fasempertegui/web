@@ -8,6 +8,7 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar'
+import { inicialesUsuario, nombreCompleto } from './usuarios.js'
 import './navegacion-admin.css'
 
 const grupos = [
@@ -25,8 +26,8 @@ const grupos = [
 function MenuAdmin({ agenda, usuario, sinLeer, cerrar }) {
   const { pathname } = useLocation()
   const { setOpenMobile } = useSidebar()
-  const nombre = [usuario.nombre, usuario.apellido].filter(Boolean).join(' ') || usuario.nombre_usuario
-  const inicial = nombre.slice(0, 1).toLocaleUpperCase('es-AR')
+  const nombre = nombreCompleto(usuario)
+  const inicial = inicialesUsuario(usuario, 1)
   const cerrarMenuMovil = () => setOpenMobile(false)
 
   return <Sidebar collapsible="offcanvas">

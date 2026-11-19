@@ -1,35 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useBuscarUsuarios } from '@/hooks/use-buscar-usuarios'
 import { api } from './api.js'
 import { fechaValida, importe, labelFecha } from './fechas.js'
-
-function nombreCompleto(usuario) {
-  return [usuario.nombre, usuario.apellido].filter(Boolean).join(' ') || usuario.nombre_usuario
-}
+import { nombreCompleto } from './usuarios.js'
 
 function BuscarOrganizador({ organizador, elegir }) {
   const [texto, setTexto] = useState('')
-  const [resultado, setResultado] = useState(null)
-  const consulta = texto.trim()
+  const { usuarios, error, buscando } = useBuscarUsuarios(texto, { activo: !organizador })
 
-  useEffect(() => {
-    if (consulta.length < 2 || organizador) return
-    const control = new AbortController()
-    const espera = setTimeout(() => {
-      api('usuarios/?q=' + encodeURIComponent(consulta), { signal: control.signal })
-        .then(datos => setResultado({ consulta, usuarios: datos.usuarios }))
-        .catch(error => {
-          if (error.name !== 'AbortError') setResultado({ consulta, error: error.message })
-        })
-    }, 220)
-    return () => {
-      clearTimeout(espera)
-      control.abort()
-    }
-  }, [consulta, organizador])
-
-  const actual = resultado?.consulta === consulta ? resultado : null
   return <section className="organizador">
     {organizador ? <div className="elegido">
       <strong>{nombreCompleto(organizador)}</strong>
@@ -37,11 +17,11 @@ function BuscarOrganizador({ organizador, elegir }) {
     </div> : <>
       <label>Organizador<input type="search" value={texto} onChange={evento => setTexto(evento.target.value)}
         placeholder="Buscar por nombre, apellido o usuario" /></label>
-      {consulta.length >= 2 && !actual && <p role="status">Buscando…</p>}
-      {actual?.error && <p className="error" role="alert">{actual.error}</p>}
-      {actual?.usuarios?.length === 0 && <p>No encontramos usuarios.</p>}
-      {actual?.usuarios?.length > 0 && <ul className="resultados">
-        {actual.usuarios.map(usuario => <li key={usuario.id}>
+      {buscando && <p role="status">Buscando…</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      {usuarios?.length === 0 && <p>No encontramos usuarios.</p>}
+      {usuarios?.length > 0 && <ul className="resultados">
+        {usuarios.map(usuario => <li key={usuario.id}>
           <button type="button" onClick={() => elegir(usuario)}>
             <strong>{nombreCompleto(usuario)}</strong><span>{usuario.nombre_usuario}</span>
           </button>

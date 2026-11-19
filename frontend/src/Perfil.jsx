@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { AtSign, CalendarDays, CheckCircle2, Mail, Pencil, Phone } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -10,8 +10,10 @@ import { Label } from '@/components/ui/label'
 import {
   Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger,
 } from '@/components/ui/sheet'
+import { useConsulta } from '@/hooks/use-consulta'
 import { api } from './api.js'
 import { hoy, labelFecha } from './fechas.js'
+import { inicialesUsuario, nombreCompleto } from './usuarios.js'
 import './perfil.css'
 
 function DatoPerfil({ icono: Icono, etiqueta, valor }) {
@@ -29,23 +31,14 @@ function DatoPerfil({ icono: Icono, etiqueta, valor }) {
 export default function Perfil({ usuario, alGuardar }) {
   const [editando, setEditando] = useState(false)
   const { register, handleSubmit, reset, formState: { isSubmitting: guardando } } = useForm()
-  const [error, setError] = useState('')
+  const [errorEdicion, setErrorEdicion] = useState('')
   const [guardado, setGuardado] = useState(false)
-  const [cargando, setCargando] = useState(true)
+  const { error: errorConsulta, cargando } = useConsulta('perfil/', {
+    alExito: datos => alGuardar(datos.usuario),
+  })
 
-  const nombres = [usuario.nombre, usuario.apellido].filter(Boolean)
-  const nombre = nombres.join(' ') || usuario.nombre_usuario
-  const iniciales = (nombres.length ? nombres.map(parte => parte[0]).join('') : nombre.slice(0, 2))
-    .toLocaleUpperCase('es-AR')
-
-  useEffect(() => {
-    const control = new AbortController()
-    api('perfil/', { signal: control.signal })
-      .then(datos => { if (!control.signal.aborted) alGuardar(datos.usuario) })
-      .catch(fallo => { if (fallo.name !== 'AbortError') setError(fallo.message) })
-      .finally(() => { if (!control.signal.aborted) setCargando(false) })
-    return () => control.abort()
-  }, [alGuardar])
+  const nombre = nombreCompleto(usuario)
+  const iniciales = inicialesUsuario(usuario)
 
   function cambiarEdicion(abierta) {
     if (guardando) return
@@ -58,19 +51,19 @@ export default function Perfil({ usuario, alGuardar }) {
       })
       setGuardado(false)
     }
-    setError('')
+    setErrorEdicion('')
     setEditando(abierta)
   }
 
   async function guardar(datos) {
-    setError('')
+    setErrorEdicion('')
     try {
       const perfil = await api('perfil/', { datos, metodo: 'PUT' })
       alGuardar(perfil.usuario)
       setEditando(false)
       setGuardado(true)
     } catch (fallo) {
-      setError(fallo.message)
+      setErrorEdicion(fallo.message)
     }
   }
 
@@ -82,7 +75,7 @@ export default function Perfil({ usuario, alGuardar }) {
 
       {guardado && <p className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900"
         role="status"><CheckCircle2 aria-hidden="true" className="size-4 shrink-0" />Perfil actualizado.</p>}
-      {error && !editando && <p className="error" role="alert">{error}</p>}
+      {errorConsulta && !editando && <p className="error" role="alert">{errorConsulta}</p>}
 
       <Sheet open={editando} onOpenChange={cambiarEdicion}>
         <div className="grid gap-4 md:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)]">
@@ -150,7 +143,7 @@ export default function Perfil({ usuario, alGuardar }) {
                 <Input id="perfil-nacimiento" {...register('fecha_nacimiento')} type="date" required max={hoy()} autoComplete="bday" />
               </div>
             </fieldset>
-            {error && <p className="error mx-5 sm:mx-6" role="alert">{error}</p>}
+            {errorEdicion && <p className="error mx-5 sm:mx-6" role="alert">{errorEdicion}</p>}
             <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
               <SheetClose asChild>
                 <Button type="button" variant="outline" disabled={guardando}>Cancelar</Button>

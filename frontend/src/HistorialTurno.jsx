@@ -1,23 +1,13 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
-import { api } from './api.js'
+import { useConsulta } from '@/hooks/use-consulta'
 import { labelFecha } from './fechas.js'
 
 export function HistorialTurno({ cancha, fecha, turno, volver }) {
-  const [resultado, setResultado] = useState(null)
-
-  useEffect(() => {
-    const control = new AbortController()
-    const filtros = new URLSearchParams({
-      cancha_id: cancha.id, fecha, hora_inicio: turno.hora_inicio,
-    })
-    api('agenda/historial/?' + filtros, { signal: control.signal })
-      .then(datos => { if (!control.signal.aborted) setResultado(datos) })
-      .catch(fallo => {
-        if (fallo.name !== 'AbortError') setResultado({ error: fallo.message })
-      })
-    return () => control.abort()
-  }, [cancha.id, fecha, turno.hora_inicio])
+  const filtros = new URLSearchParams({
+    cancha_id: cancha.id, fecha, hora_inicio: turno.hora_inicio,
+  })
+  const { datos: resultado, error, cargando } = useConsulta('agenda/historial/?' + filtros)
 
   return <>
     <div className="turno-resumen">
@@ -26,8 +16,8 @@ export function HistorialTurno({ cancha, fecha, turno, volver }) {
       <p>{cancha.nombre} · {labelFecha(fecha)}</p>
     </div>
     <button type="button" className="accion" onClick={volver}>Volver al turno</button>
-    {!resultado && <p role="status">Cargando historial…</p>}
-    {resultado?.error && <p className="error" role="alert">{resultado.error}</p>}
+    {cargando && <p role="status">Cargando historial…</p>}
+    {error && <p className="error" role="alert">{error}</p>}
     {resultado?.historial?.length === 0 && <p>No hay cancelaciones ni liberaciones para mostrar.</p>}
     {resultado?.historial?.length > 0 && <ul className="historial-turno">
       {resultado.historial.map((fila, indice) => <li key={indice} className={fila.tipo}>

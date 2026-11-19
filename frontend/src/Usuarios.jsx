@@ -1,29 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { CheckCircle2, ChevronRight, KeyRound, Mail, Search, UserRound, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { PanelDetalle } from '@/components/PanelDetalle'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useBuscarUsuarios } from '@/hooks/use-buscar-usuarios'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { api } from './api.js'
+import { inicialesUsuario, nombreCompleto } from './usuarios.js'
 import './usuarios.css'
 
-function nombreCompleto(usuario) {
-  return [usuario.nombre, usuario.apellido].filter(Boolean).join(' ') || usuario.nombre_usuario
-}
-
 function InicialesUsuario({ usuario, grande = false }) {
-  const nombres = [usuario.nombre, usuario.apellido].filter(Boolean)
-  const iniciales = (nombres.length ? nombres.map(parte => parte[0]).join('') : usuario.nombre_usuario.slice(0, 2))
-    .toLocaleUpperCase('es-AR')
-
   return <Avatar aria-hidden="true" className={grande ? 'size-12 shrink-0 rounded-xl' : 'size-9 shrink-0 rounded-lg'}>
-    <AvatarFallback className={`rounded-[inherit] text-sm font-semibold text-primary ${grande ? 'bg-white' : 'bg-secondary'}`}>{iniciales}</AvatarFallback>
+    <AvatarFallback className={`rounded-[inherit] text-sm font-semibold text-primary ${grande ? 'bg-white' : 'bg-secondary'}`}>
+      {inicialesUsuario(usuario)}
+    </AvatarFallback>
   </Avatar>
 }
 
@@ -109,51 +105,28 @@ function DetalleUsuario({ cuenta, movil, cerrar, recuperarFoco, alGuardar }) {
     </form>}
   </>
 
-  return movil ? <Sheet open onOpenChange={abierto => { if (!abierto && !guardando) cerrar() }}>
-    <SheetContent side="bottom" showCloseButton={!guardando}
-      className="usuarios-sheet max-h-[85svh] gap-0 overflow-y-auto rounded-t-xl bg-card"
-      onCloseAutoFocus={evento => { evento.preventDefault(); recuperarFoco() }}>
-      <SheetHeader className="sr-only">
-        <SheetTitle>Detalle de la cuenta</SheetTitle>
-        <SheetDescription>Datos y acciones para la cuenta seleccionada.</SheetDescription>
-      </SheetHeader>
-      <div className="px-4 pt-12 pb-5">{contenido}</div>
-    </SheetContent>
-  </Sheet> : <Card role="complementary" aria-label="Detalle de la cuenta"
-    className="usuarios-panel gap-0 rounded-2xl border-border py-0 shadow-none">
-    <CardContent className="p-4">{contenido}</CardContent>
-  </Card>
+  return <PanelDetalle
+    movil={movil}
+    abierto
+    cerrar={cerrar}
+    recuperarFoco={recuperarFoco}
+    bloqueado={guardando}
+    titulo="Detalle de la cuenta"
+    descripcion="Datos y acciones para la cuenta seleccionada."
+    clasePanel="usuarios-panel"
+    claseSheet="usuarios-sheet">
+    {contenido}
+  </PanelDetalle>
 }
 
 export default function Usuarios({ alGuardar }) {
   const [texto, setTexto] = useState('')
-  const [resultado, setResultado] = useState(null)
   const [seleccion, setSeleccion] = useState(null)
   const disparador = useRef(null)
   const movil = useIsMobile(1024)
-  const busqueda = texto.trim()
-  const activa = resultado?.busqueda === busqueda ? resultado : null
-  const cuenta = activa?.usuarios?.find(usuario => usuario.id === seleccion)
-  const tieneResultados = activa?.usuarios?.length > 0
-
-  useEffect(() => {
-    if (busqueda.length < 2) return
-    const control = new AbortController()
-    const espera = setTimeout(() => {
-      api('usuarios/?q=' + encodeURIComponent(busqueda), { signal: control.signal })
-        .then(datos => {
-          if (!control.signal.aborted) setResultado({ busqueda, usuarios: datos.usuarios })
-        })
-        .catch(fallo => {
-          if (fallo.name !== 'AbortError') setResultado({ busqueda, error: fallo.message })
-        })
-    }, 220)
-
-    return () => {
-      clearTimeout(espera)
-      control.abort()
-    }
-  }, [busqueda])
+  const { busqueda, usuarios, error, buscando, actualizarUsuario } = useBuscarUsuarios(texto)
+  const cuenta = usuarios?.find(usuario => usuario.id === seleccion)
+  const tieneResultados = usuarios?.length > 0
 
   function recuperarFoco() {
     if (disparador.current?.isConnected) disparador.current.focus()
@@ -165,10 +138,7 @@ export default function Usuarios({ alGuardar }) {
   }
 
   function actualizar(usuario, accion) {
-    setResultado(actual => actual?.usuarios ? {
-      ...actual,
-      usuarios: actual.usuarios.map(item => item.id === usuario.id ? usuario : item),
-    } : actual)
+    actualizarUsuario(usuario)
     alGuardar(usuario, accion)
   }
 
@@ -189,18 +159,17 @@ export default function Usuarios({ alGuardar }) {
                 placeholder="Nombre, usuario o correo" onChange={evento => {
                   setTexto(evento.target.value)
                   setSeleccion(null)
-                  if (evento.target.value.trim() !== busqueda) setResultado(null)
                 }} />
             </div>
           </div>
           {busqueda.length < 2 && <p className="m-0 px-4 py-6 text-sm text-muted-foreground sm:px-5">Ingresá al menos dos caracteres.</p>}
-          {busqueda.length >= 2 && !activa && <div className="grid gap-3 p-4 sm:p-5" role="status" aria-label="Buscando usuarios">
+          {buscando && <div className="grid gap-3 p-4 sm:p-5" role="status" aria-label="Buscando usuarios">
             <Skeleton className="h-10 w-full rounded-lg" /><Skeleton className="h-10 w-full rounded-lg" />
           </div>}
-          {activa?.error && <p className="error mx-4 my-4 sm:mx-5" role="alert">{activa.error}</p>}
-          {activa?.usuarios?.length === 0 && <p className="m-0 px-4 py-6 text-sm text-muted-foreground sm:px-5">No encontramos usuarios.</p>}
+          {error && <p className="error mx-4 my-4 sm:mx-5" role="alert">{error}</p>}
+          {usuarios?.length === 0 && <p className="m-0 px-4 py-6 text-sm text-muted-foreground sm:px-5">No encontramos usuarios.</p>}
           {tieneResultados && <ul className="m-0 list-none divide-y divide-border p-0">
-            {activa.usuarios.map(usuario => <li key={usuario.id}>
+            {usuarios.map(usuario => <li key={usuario.id}>
               <button type="button" className="usuarios-fila" aria-pressed={seleccion === usuario.id}
                 onClick={evento => {
                   disparador.current = evento.currentTarget
@@ -222,7 +191,7 @@ export default function Usuarios({ alGuardar }) {
 
         {cuenta ? <DetalleUsuario key={cuenta.id} cuenta={cuenta} movil={movil} cerrar={cerrarDetalle}
           recuperarFoco={recuperarFoco} alGuardar={actualizar} /> : !movil && tieneResultados &&
-          <Card className="usuarios-panel gap-2 rounded-2xl border-border p-4 shadow-none" aria-label="Detalle de la cuenta">
+          <Card role="complementary" className="usuarios-panel gap-2 rounded-2xl border-border p-4 shadow-none" aria-label="Detalle de la cuenta">
             <span className="usuarios-icono"><UserRound aria-hidden="true" /></span>
             <h2 className="usuarios-titulo m-0 text-lg">Elegí una cuenta</h2>
             <p className="m-0 text-sm text-muted-foreground">Seleccioná un usuario de la lista para ver sus datos.</p>

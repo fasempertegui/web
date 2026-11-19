@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useConsulta } from '@/hooks/use-consulta'
 import { api } from './api.js'
 import { horaActual, hoy, labelFecha } from './fechas.js'
 
@@ -125,16 +126,7 @@ function FormularioCierre({ sedes, cierre, sedeId, volver, alConfirmar }) {
 
 export function CierreMalTiempo({ sedes, sedeId, cerrar, alConfirmar }) {
   const [modo, setModo] = useState(null)
-  const [listado, setListado] = useState(null)
-  useEffect(() => {
-    const control = new AbortController()
-    api(ruta, { signal: control.signal })
-      .then(datos => { if (!control.signal.aborted) setListado(datos) })
-      .catch(fallo => {
-        if (fallo.name !== 'AbortError') setListado({ error: fallo.message })
-      })
-    return () => control.abort()
-  }, [])
+  const { datos: listado, error, cargando } = useConsulta(ruta)
 
   return <>
     <div className="turno-resumen">
@@ -145,8 +137,8 @@ export function CierreMalTiempo({ sedes, sedeId, cerrar, alConfirmar }) {
       cierre={modo.id ? modo : null} volver={() => setModo(null)} alConfirmar={alConfirmar} /> : <>
       <button type="button" className="primario accion" onClick={() => setModo('nuevo')}>Nuevo cierre</button>
       <h4>Cierres vigentes y programados</h4>
-      {!listado && <p role="status">Cargando cierres…</p>}
-      {listado?.error && <p className="error" role="alert">{listado.error}</p>}
+      {cargando && <p role="status">Cargando cierres…</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {listado?.cierres?.length === 0 && <p>No hay cierres programados.</p>}
       {listado?.cierres?.length > 0 && <ul className="lista-cierres">
         {listado.cierres.map(cierre => <li key={cierre.id}>

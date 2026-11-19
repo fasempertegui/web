@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { CalendarClock, CheckCircle2, ChevronRight, CircleDollarSign, MapPin, Pencil, Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +11,7 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useConsulta } from '@/hooks/use-consulta'
 import { api } from './api.js'
 import { importe } from './fechas.js'
 import './instalaciones.css'
@@ -153,21 +154,13 @@ function HorariosSede({ horarios, editar }) {
 }
 
 export default function Instalaciones() {
-  const [sedes, setSedes] = useState(null)
+  const { datos, error, cargando, setDatos } = useConsulta('instalaciones/')
   const [seleccion, seleccionar] = useState(null)
   const [accion, setAccion] = useState(null)
-  const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
   const disparador = useRef(null)
+  const sedes = datos?.sedes || null
   const sede = sedes?.find(item => item.id === seleccion) || sedes?.[0]
-
-  useEffect(() => {
-    const control = new AbortController()
-    api('instalaciones/', { signal: control.signal })
-      .then(datos => { if (!control.signal.aborted) setSedes(datos.sedes) })
-      .catch(fallo => { if (fallo.name !== 'AbortError') setError(fallo.message) })
-    return () => control.abort()
-  }, [])
 
   function abrir(nueva, boton) {
     disparador.current = boton
@@ -176,10 +169,11 @@ export default function Instalaciones() {
   }
 
   function guardar(actualizada) {
-    setSedes(actuales => {
-      const otras = actuales.filter(item => item.id !== actualizada.id)
-      return [...otras, actualizada].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-AR'))
-    })
+    setDatos(actual => ({
+      ...actual,
+      sedes: [...actual.sedes.filter(item => item.id !== actualizada.id), actualizada]
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-AR')),
+    }))
     seleccionar(actualizada.id)
     setAccion(null)
     setMensaje('Cambios guardados.')
@@ -194,7 +188,7 @@ export default function Instalaciones() {
       </header>
       {error && <p className="error" role="alert">{error}</p>}
       {mensaje && <p className="instalaciones-confirmacion" role="status"><CheckCircle2 aria-hidden="true" />{mensaje}</p>}
-      {!sedes && !error && <Skeleton className="h-40 rounded-2xl" role="status" aria-label="Cargando instalaciones" />}
+      {cargando && <Skeleton className="h-40 rounded-2xl" role="status" aria-label="Cargando instalaciones" />}
       {sedes?.length === 0 && <Card className="gap-3 rounded-2xl border-border p-6 shadow-none">
         <span className="instalaciones-icono"><MapPin aria-hidden="true" /></span>
         <h2 className="instalaciones-titulo m-0 text-xl">Todavía no hay sedes</h2>
