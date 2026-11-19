@@ -77,7 +77,7 @@ export function Perfil({ usuario, alGuardar }) {
   }
 
   return <main className="perfil-superficie w-full flex-1">
-    <div className="mx-auto max-w-5xl px-4 pt-7 pb-12 sm:px-8 sm:pt-10">
+    <div className="contenido-pagina">
       <header className="mb-6">
         <h1 className="perfil-titulo m-0 text-4xl leading-none font-semibold sm:text-5xl">Mi perfil</h1>
       </header>

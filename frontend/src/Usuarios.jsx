@@ -175,7 +175,7 @@ export default function Usuarios({ alGuardar }) {
   }
 
   return <main className="usuarios-superficie w-full flex-1">
-    <div className="usuarios-contenido">
+    <div className="contenido-pagina">
       <header className="mb-5">
         <h1 className="usuarios-titulo m-0 text-4xl leading-none font-semibold sm:text-5xl">Usuarios</h1>
       </header>

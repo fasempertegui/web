@@ -5,12 +5,6 @@
     font-family: "DM Sans Variable", "Segoe UI", sans-serif;
   }
 
-  .notificaciones-contenido {
-    max-width: 62rem;
-    margin: 0 auto;
-    padding: clamp(1rem, 2.5vw, 2.25rem);
-  }
-
   .notificaciones-titulo {
     font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
     letter-spacing: -.035em;

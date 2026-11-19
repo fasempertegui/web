@@ -193,7 +193,7 @@ export default function Agenda({ usuario }) {
   return <main className="agenda-superficie w-full flex-1" onKeyDown={evento => {
     if (!movil && evento.key === 'Escape' && (turno || periodo)) cerrarPanel()
   }}>
-    <div className="agenda-contenido">
+    <div className="contenido-pagina">
       <header className="agenda-encabezado">
         <h1 className="agenda-titulo">Agenda</h1>
         {administrador && sede && <DropdownMenu>

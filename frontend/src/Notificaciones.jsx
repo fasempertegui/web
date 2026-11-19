@@ -120,7 +120,7 @@ export default function Notificaciones({ alCargar }) {
   }
 
   return <main className="notificaciones-superficie w-full flex-1">
-    <div className="notificaciones-contenido">
+    <div className="contenido-pagina">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="notificaciones-titulo m-0 text-4xl leading-none font-semibold sm:text-5xl">Notificaciones</h1>
         {sinLeer > 0 && <Button type="button" variant="outline"

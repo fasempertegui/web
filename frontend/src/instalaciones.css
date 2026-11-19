@@ -8,12 +8,6 @@
     background: radial-gradient(ellipse at 15% 0%, #ede2f7, transparent 36rem), #f9f7fb;
   }
 
-  .instalaciones-contenido {
-    max-width: 76rem;
-    margin: 0 auto;
-    padding: clamp(1rem, 2.5vw, 2.25rem);
-  }
-
   .instalaciones-titulo {
     font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
     letter-spacing: -.035em;

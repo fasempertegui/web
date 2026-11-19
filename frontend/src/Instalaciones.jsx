@@ -188,7 +188,7 @@ export default function Instalaciones() {
   }
 
   return <main className="instalaciones-superficie w-full flex-1">
-    <div className="instalaciones-contenido">
+    <div className="contenido-pagina">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="instalaciones-titulo m-0 text-4xl leading-none font-semibold sm:text-5xl">Instalaciones</h1>
         {sedes && <Button type="button" className="h-10"

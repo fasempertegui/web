@@ -89,6 +89,12 @@ button:disabled { cursor: default; opacity: .55; }
 .barra-cuenta button { background: transparent; border-color: #b896ce; color: white; min-height: 2.2rem; }
 .barra-cuenta button:hover { background: var(--morado); }
 .pagina { max-width: 1600px; margin: 0 auto; padding: 1.5rem; }
+.contenido-pagina {
+  width: 100%;
+  max-width: 94rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 2.5vw, 2.25rem);
+}
 .encabezado { margin-bottom: 1rem; }
 .encabezado h1, .reserva-form h1 { font-size: clamp(1.85rem, 3vw, 2.4rem); letter-spacing: -.045em; margin-bottom: .35rem; }
 .encabezado p { color: var(--texto-suave); margin-bottom: 0; }

@@ -8,12 +8,6 @@
     background: radial-gradient(ellipse at 15% 0%, #ede2f7, transparent 36rem), #f9f7fb;
   }
 
-  .agenda-contenido {
-    max-width: 94rem;
-    margin: 0 auto;
-    padding: clamp(1rem, 2.5vw, 2.25rem);
-  }
-
   .agenda-titulo {
     font-family: "Bricolage Grotesque Variable", "DM Sans Variable", sans-serif;
     font-weight: 650;

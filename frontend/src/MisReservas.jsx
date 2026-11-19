@@ -171,7 +171,7 @@ export default function MisReservas() {
   return <main className="mis-reservas-superficie w-full flex-1" onKeyDown={evento => {
     if (!movil && detalle && evento.key === 'Escape') cerrarDetalle()
   }}>
-    <div className="mis-reservas-contenido">
+    <div className="contenido-pagina">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="mis-reservas-titulo m-0 text-4xl leading-none font-semibold sm:text-5xl">Mis reservas</h1>
         {reservas?.length > 0 && <Button asChild className="h-10 no-underline">
