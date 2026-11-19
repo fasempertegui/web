@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path
 from django.views.decorators.http import require_safe
-from instalaciones.views import listar_sedes
+from instalaciones import views as instalaciones
 from notificaciones import views as notificaciones
 from reservas import views as reservas
 from usuarios import views as usuarios
@@ -20,7 +20,11 @@ urlpatterns = [
     path("api/notificaciones/", notificaciones.listar),
     path("api/notificaciones/<int:notificacion_id>/leer/", notificaciones.leer),
     path("api/notificaciones/leer-todas/", notificaciones.leer_todas),
-    path("api/sedes/", listar_sedes),
+    path("api/sedes/", instalaciones.listar_sedes),
+    path("api/instalaciones/", instalaciones.administrar_sedes),
+    path("api/instalaciones/<int:sede_id>/canchas/", instalaciones.crear_cancha),
+    path("api/instalaciones/<int:sede_id>/precio/", instalaciones.guardar_precio),
+    path("api/instalaciones/<int:sede_id>/horarios/<int:dia>/", instalaciones.guardar_horario),
     path("api/agenda/", bloqueos.agenda),
     path("api/agenda/diaria/", bloqueos.agenda_diaria),
     path("api/agenda/historial/", bloqueos.historial_turno),

@@ -282,3 +282,18 @@ button:disabled { cursor: default; opacity: .55; }
 .historial-turno li { display: grid; gap: .25rem; padding: .6rem; border-radius: .5rem; font-size: .9rem; }
 .historial-turno .reserva { background: #fff3e9; }
 .historial-turno .bloqueo { background: var(--lavanda); }
+
+.editor-instalacion { padding: 1rem; }
+.editor-instalacion h2 { font-size: 1.15rem; }
+.editor-instalacion fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.editor-instalacion fieldset > label + label { margin-top: .65rem; }
+.editor-instalacion .franja-horario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .7rem; }
+.franja-horario legend { font-size: .85rem; color: var(--texto-suave); padding: 0 0 .4rem; }
+.editor-instalacion .franja-horario label { margin: 0; }
+.dia-cerrado { display: flex; align-items: center; gap: .45rem; }
+.dia-cerrado input { display: inline; width: auto; min-height: auto; margin: 0; }
+.lista-reservas .lista-instalacion { margin-top: .7rem; }
+.lista-instalacion li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; align-items: center; }
+.lista-instalacion li + li { border-top: 1px solid var(--borde); padding-top: .45rem; }
+.lista-instalacion li span { color: var(--texto-suave); font-size: .9rem; }
+.lista-instalacion li div span { display: block; margin-top: .15rem; }

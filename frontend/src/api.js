@@ -1,13 +1,12 @@
 let csrfToken
 
-export async function api(ruta, { datos, signal, metodo = 'POST' } = {}) {
-  const opciones = { signal }
+export async function api(ruta, { datos, signal, metodo = datos === undefined ? 'GET' : 'POST' } = {}) {
+  const opciones = { signal, method: metodo }
+  if (!['GET', 'HEAD'].includes(metodo)) {
+    opciones.headers = { 'X-CSRFToken': csrfToken || '' }
+  }
   if (datos !== undefined) {
-    opciones.method = metodo
-    opciones.headers = {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrfToken || '',
-    }
+    opciones.headers = { ...opciones.headers, 'Content-Type': 'application/json' }
     opciones.body = JSON.stringify(datos)
   }
 

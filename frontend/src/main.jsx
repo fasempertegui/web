@@ -8,6 +8,7 @@ import { MisReservas } from "./MisReservas.jsx"
 import { Notificaciones } from './Notificaciones.jsx'
 import { Perfil } from "./Perfil.jsx"
 import { Usuarios } from './Usuarios.jsx'
+import { Instalaciones } from './Instalaciones.jsx'
 import { Registro } from './Registro.jsx'
 import './styles.css'
 
@@ -138,6 +139,8 @@ function App() {
           <Link to="/perfil" aria-current={location.pathname === "/perfil" ? "page" : undefined}>Perfil</Link>
           {usuario.es_administrador && <Link to="/usuarios"
             aria-current={ruta === '/usuarios' ? 'page' : undefined}>Usuarios</Link>}
+          {usuario.es_administrador && <Link to="/instalaciones"
+            aria-current={ruta === '/instalaciones' ? 'page' : undefined}>Instalaciones</Link>}
           <span>{usuario.nombre || usuario.nombre_usuario}</span>
           <button type="button" onClick={cerrar}>Salir</button>
         </div>
@@ -152,6 +155,7 @@ function App() {
       <Route path="/perfil" element={<Perfil usuario={usuario} alGuardar={setUsuario} />} />
       {usuario.es_administrador && <Route path="/usuarios"
         element={<Usuarios alGuardar={actualizarCuenta} />} />}
+      {usuario.es_administrador && <Route path="/instalaciones" element={<Instalaciones />} />}
       <Route path="*" element={<Navigate to="/agenda" replace />} />
     </Routes>
   </>
