@@ -1,0 +1,37 @@
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "./styles.css" layer(components);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: #f4f2f6;
+  --color-foreground: #231b2e;
+  --color-card: #ffffff;
+  --color-card-foreground: #231b2e;
+  --color-primary: #48196d;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f1eaf7;
+  --color-secondary-foreground: #34104e;
+  --color-muted: #f1eaf7;
+  --color-muted-foreground: #62586e;
+  --color-accent: #f1eaf7;
+  --color-accent-foreground: #34104e;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #231b2e;
+  --color-border: #ded7e6;
+  --color-input: #ded7e6;
+  --color-ring: #8657b4;
+  --color-destructive: #90243a;
+  --color-sidebar: #34104e;
+  --color-sidebar-foreground: #fcf7ff;
+  --color-sidebar-primary: #c8e433;
+  --color-sidebar-primary-foreground: #34104e;
+  --color-sidebar-accent: #50246a;
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: #603b77;
+  --color-sidebar-ring: #c8e433;
+}

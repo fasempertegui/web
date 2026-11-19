@@ -1,6 +1,11 @@
+import { fileURLToPath } from 'node:url'
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  plugins: [tailwindcss()],
+  esbuild: { jsx: 'automatic' },
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: {
     strictPort: true,
     proxy: {
