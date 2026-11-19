@@ -24,12 +24,7 @@ def consultar_disponibilidad(cancha, fecha):
     if precio is None:
         raise ValidationError("La sede necesita un precio por turno configurado para ofrecer turnos.")
 
-    horario = sede.horarios.filter(dia_semana=fecha.isoweekday()).first()
-    franjas = []
-    if horario is not None:
-        franjas.append((horario.hora_inicio_1, horario.hora_fin_1))
-        if horario.hora_inicio_2 is not None:
-            franjas.append((horario.hora_inicio_2, horario.hora_fin_2))
+    horarios = horarios_del_dia(sede, fecha)
 
     ocupados = set(
         Evento.objects.filter(
@@ -39,13 +34,25 @@ def consultar_disponibilidad(cancha, fecha):
         ).values_list("turno__hora_inicio", flat=True)
     )
     turnos = []
-    for hora in range(23):
-        inicio, fin = time(hora), time(hora + 1)
+    for inicio, fin in horarios:
         if inicio in ocupados or (fecha == ahora.date() and inicio <= ahora.time()):
             continue
-        if any(apertura <= inicio and fin <= cierre for apertura, cierre in franjas):
-            turnos.append({
-                "hora_inicio": inicio.isoformat(timespec="minutes"),
-                "hora_fin": fin.isoformat(timespec="minutes"),
-            })
+        turnos.append({
+            "hora_inicio": inicio.isoformat(timespec="minutes"),
+            "hora_fin": fin.isoformat(timespec="minutes"),
+        })
     return {"precio_por_turno": precio, "turnos": turnos}
+
+
+def horarios_del_dia(sede, fecha):
+    horario = sede.horarios.filter(dia_semana=fecha.isoweekday()).first()
+    franjas = []
+    if horario is not None:
+        franjas.append((horario.hora_inicio_1, horario.hora_fin_1))
+        if horario.hora_inicio_2 is not None:
+            franjas.append((horario.hora_inicio_2, horario.hora_fin_2))
+    return [
+        (time(hora), time(hora + 1))
+        for hora in range(23)
+        if any(inicio <= time(hora) and time(hora + 1) <= fin for inicio, fin in franjas)
+    ]

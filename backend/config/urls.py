@@ -1,3 +1,4 @@
+from bloqueos import views as bloqueos
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path
@@ -16,6 +17,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/estado/", estado_api),
     path("api/sedes/", listar_sedes),
+    path("api/agenda/", bloqueos.agenda),
+    path("api/bloqueos/", bloqueos.crear),
+    path("api/bloqueos/<int:bloqueo_id>/liberar/", bloqueos.liberar),
     path("api/canchas/<int:cancha_id>/disponibilidad/", reservas.disponibilidad),
     path("api/reservas/", reservas.reservas),
     path("api/reservas/<int:reserva_id>/cancelar/", reservas.cancelar),
