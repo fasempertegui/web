@@ -1,6 +1,6 @@
 import json
 from calendar import monthrange
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from hashlib import sha256
 
 from django.core import signing
@@ -13,6 +13,7 @@ from reservas.disponibilidad import horarios_del_dia
 from reservas.models import Evento
 from reservas.servicios import ConflictoReserva, cancelar_reserva
 
+from .models import CierreMalTiempo
 from .servicios import crear_bloqueo, liberar_bloqueo
 
 
@@ -74,6 +75,9 @@ def revisar_operacion(datos):
     if fin and fin not in {limite.strftime("%H:%M") for _, limite in horarios_disponibles}:
         raise ValidationError("La hora de fin debe corresponder al cierre de un turno habilitado.")
 
+    cierres = list(CierreMalTiempo.objects.filter(
+        sedes=sede, hasta__gt=ahora
+    ).values_list("desde", "hasta")) if not bloquear else []
     resultado = {"acciones": [], "conservados": [], "ya_bloqueados": []}
     for clave in sorted(ocupados.keys() | habilitados):
         fecha, cancha_id, hora = clave
@@ -94,6 +98,11 @@ def revisar_operacion(datos):
             resultado["conservados"].append(dict(fila, razon="finalizado"))
         elif bloquear and evento and evento.tipo == Evento.Tipo.BLOQUEO:
             resultado["ya_bloqueados"].append(fila)
+        elif evento and evento.tipo == Evento.Tipo.BLOQUEO and any(
+            desde_cierre <= timezone.make_aware(datetime.combine(fecha, hora)) < fin_cierre
+            for desde_cierre, fin_cierre in cierres
+        ):
+            resultado["conservados"].append(dict(fila, razon="cierre_por_mal_tiempo"))
         elif evento and (
             evento.tipo == Evento.Tipo.RESERVA and datos["conservar_reservas"]
             or evento.tipo == Evento.Tipo.BLOQUEO and datos["conservar_bloqueos"]

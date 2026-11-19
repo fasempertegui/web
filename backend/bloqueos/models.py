@@ -1,11 +1,26 @@
+from django.conf import settings
 from django.db import models
 
 from reservas.models import Evento
 
 
+class CierreMalTiempo(models.Model):
+    sedes = models.ManyToManyField("instalaciones.Sede", related_name="cierres_por_mal_tiempo")
+    desde = models.DateTimeField()
+    hasta = models.DateTimeField()
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-desde", "-pk")
+        constraints = [
+            models.CheckConstraint(condition=models.Q(hasta__gt=models.F("desde")), name="cierre_intervalo_valido"),
+        ]
+
+
 class Bloqueo(models.Model):
     class Motivo(models.TextChoices):
-        CLIMA_ADVERSO = "clima_adverso", "Clima adverso"
+        MAL_TIEMPO = "clima_adverso", "Mal tiempo"
         TORNEO = "torneo", "Torneo"
         MANTENIMIENTO = "mantenimiento", "Mantenimiento"
 
@@ -17,6 +32,9 @@ class Bloqueo(models.Model):
         limit_choices_to={"tipo": Evento.Tipo.BLOQUEO},
     )
     motivo = models.CharField(max_length=20, choices=Motivo.choices)
+    cierre = models.ForeignKey(
+        CierreMalTiempo, on_delete=models.PROTECT, related_name="bloqueos", null=True, blank=True
+    )
     evento_origen = models.OneToOneField(
         Evento,
         on_delete=models.PROTECT,
@@ -45,3 +63,9 @@ class Bloqueo(models.Model):
     @property
     def numero(self):
         return f"B-{self.pk:06d}" if self.pk is not None else ""
+
+
+MOTIVOS_PUNTUALES = [
+    (motivo.value, motivo.label)
+    for motivo in (Bloqueo.Motivo.TORNEO, Bloqueo.Motivo.MANTENIMIENTO)
+]

@@ -14,9 +14,10 @@ from reservas.models import Evento
 from reservas.servicios import ConflictoReserva
 from usuarios.views import datos_json, errores_formulario
 
-from .forms import OperacionMasivaForm
+from .cierres import confirmar_cierre, datos_cierre, preparar_cierre
+from .forms import CierreMalTiempoForm, OperacionMasivaForm, ReaperturaForm
 from .masivos import confirmar_operacion, preparar_operacion
-from .models import Bloqueo
+from .models import MOTIVOS_PUNTUALES, Bloqueo, CierreMalTiempo
 from .servicios import crear_bloqueo, liberar_bloqueo
 
 
@@ -35,7 +36,7 @@ class HistorialTurnoForm(AgendaForm):
 
 
 class BloqueoForm(HistorialTurnoForm):
-    motivo = forms.ChoiceField(choices=Bloqueo.Motivo.choices)
+    motivo = forms.ChoiceField(choices=MOTIVOS_PUNTUALES)
     evento_esperado = forms.IntegerField(min_value=0)
     observaciones = forms.CharField(required=False)
 
@@ -263,15 +264,20 @@ def liberar(request, bloqueo_id):
     return JsonResponse({"bloqueo_id": bloqueo_id, "estado": Evento.Estado.ANULADO})
 
 
+def objeto_json(request):
+    try:
+        datos = json.loads(request.body)
+    except ValueError:
+        return None
+    return datos if isinstance(datos, dict) else None
+
+
 @require_POST
 def previsualizar_masivos(request):
     if not request.user.is_superuser:
         return acceso_denegado()
-    try:
-        datos = json.loads(request.body)
-    except ValueError:
-        datos = None
-    if not isinstance(datos, dict):
+    datos = objeto_json(request)
+    if datos is None:
         return JsonResponse({"error": "Se esperaba un objeto JSON."}, status=400)
     form = OperacionMasivaForm(datos)
     if not form.is_valid():
@@ -295,5 +301,51 @@ def confirmar_masivos(request):
         return JsonResponse(confirmar_operacion(request.user, datos["confirmacion"]))
     except Sede.DoesNotExist:
         return JsonResponse({"error": "La sede no existe."}, status=404)
+    except ValidationError as error:
+        return JsonResponse({"error": error.messages[0]}, status=409)
+
+
+@require_safe
+def listar_cierres(request):
+    if not request.user.is_superuser:
+        return acceso_denegado()
+    cierres = CierreMalTiempo.objects.filter(hasta__gt=timezone.now()).prefetch_related("sedes")
+    return JsonResponse({"cierres": [datos_cierre(cierre) for cierre in cierres]})
+
+
+@require_POST
+def previsualizar_cierre(request, cierre_id=None):
+    if not request.user.is_superuser:
+        return acceso_denegado()
+    datos = objeto_json(request)
+    if datos is None:
+        return JsonResponse({"error": "Se esperaba un objeto JSON."}, status=400)
+    form = CierreMalTiempoForm(datos) if cierre_id is None else ReaperturaForm(datos)
+    if not form.is_valid():
+        return errores_formulario(form)
+    parametros = form.cleaned_data
+    if cierre_id is not None:
+        parametros["cierre_id"] = cierre_id
+    try:
+        return JsonResponse(preparar_cierre(request.user, parametros, reapertura=cierre_id is not None))
+    except CierreMalTiempo.DoesNotExist:
+        return JsonResponse({"error": "El cierre no existe."}, status=404)
+    except ConflictoReserva as error:
+        return JsonResponse({"error": error.messages[0]}, status=409)
+    except ValidationError as error:
+        return JsonResponse({"error": error.messages[0]}, status=400)
+
+
+@require_POST
+def aplicar_cierre(request):
+    if not request.user.is_superuser:
+        return acceso_denegado()
+    datos = datos_json(request)
+    if not datos or not datos.get("confirmacion"):
+        return JsonResponse({"error": "Ingresá el código de confirmación."}, status=400)
+    try:
+        return JsonResponse(confirmar_cierre(request.user, datos["confirmacion"]))
+    except CierreMalTiempo.DoesNotExist:
+        return JsonResponse({"error": "El cierre no existe."}, status=404)
     except ValidationError as error:
         return JsonResponse({"error": error.messages[0]}, status=409)

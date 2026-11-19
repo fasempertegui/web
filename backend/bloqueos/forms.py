@@ -2,15 +2,17 @@ from datetime import date
 
 from django import forms
 
-from .models import Bloqueo
+from .models import MOTIVOS_PUNTUALES
 
 
 class CanchasField(forms.Field):
+    mensaje_invalido = "Seleccioná una lista de canchas válidas."
+
     def to_python(self, value):
         if value is None:
             return []
         if not isinstance(value, list) or any(type(pk) is not int or pk < 1 for pk in value):
-            raise forms.ValidationError("Seleccioná una lista de canchas válidas.")
+            raise forms.ValidationError(self.mensaje_invalido)
         return sorted(set(value))
 
 
@@ -45,7 +47,7 @@ class OperacionMasivaForm(forms.Form):
         if datos["operacion"] == "bloquear":
             if datos["mes"]:
                 raise forms.ValidationError("Las acciones del mes sólo permiten liberar turnos.")
-            if datos["motivo"] not in Bloqueo.Motivo.values:
+            if datos["motivo"] not in dict(MOTIVOS_PUNTUALES):
                 self.add_error("motivo", "Elegí un motivo de bloqueo válido.")
         inicio, fin = datos["desde_hora"], datos["hasta_hora"]
         if fin and (not inicio or inicio >= fin):
@@ -58,3 +60,17 @@ class OperacionMasivaForm(forms.Form):
             datos["desde_hora"] = inicio.strftime("%H:%M") if inicio else None
             datos["hasta_hora"] = fin.strftime("%H:%M") if fin else None
         return datos
+
+
+class SedesField(CanchasField):
+    mensaje_invalido = "Seleccioná una lista de sedes válidas."
+
+
+class CierreMalTiempoForm(forms.Form):
+    sedes = SedesField()
+    desde = forms.CharField()
+    hasta = forms.CharField()
+
+
+class ReaperturaForm(forms.Form):
+    hasta = forms.CharField()

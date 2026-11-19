@@ -10,6 +10,7 @@ const etiquetas = {
   liberar: 'Liberar bloqueo',
   turno_iniciado: 'Turno iniciado',
   finalizado: 'Finalizado',
+  cierre_por_mal_tiempo: 'Cubierto por un cierre por mal tiempo',
   fuera_de_horario: 'Fuera de horario',
   seleccionado_para_conservar: 'Marcado para conservar',
 }

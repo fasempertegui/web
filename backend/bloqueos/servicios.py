@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date
+from datetime import date, datetime
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -10,7 +10,7 @@ from reservas.disponibilidad import horarios_del_dia
 from reservas.models import Evento, Turno
 from reservas.servicios import ConflictoReserva, cancelar_reserva
 
-from .models import Bloqueo
+from .models import Bloqueo, CierreMalTiempo
 
 
 def validar_inicio_bloqueo(fecha, hora):
@@ -25,7 +25,7 @@ def validar_inicio_bloqueo(fecha, hora):
 
 
 @transaction.atomic
-def crear_bloqueo(actor, cancha_id, fecha, hora_inicio, motivo, evento_esperado, observaciones):
+def crear_bloqueo(actor, cancha_id, fecha, hora_inicio, motivo, evento_esperado, observaciones, *, cierre=None):
     cancha = Cancha.objects.get(pk=cancha_id)
     sede = Sede.objects.select_for_update().get(pk=cancha.sede_id)
     cancha = Cancha.objects.select_for_update().get(pk=cancha_id, sede=sede)
@@ -48,17 +48,22 @@ def crear_bloqueo(actor, cancha_id, fecha, hora_inicio, motivo, evento_esperado,
     evento = Evento.objects.create(
         turno=turno, tipo=Evento.Tipo.BLOQUEO, registrado_por=actor, observaciones=observaciones
     )
-    bloqueo = Bloqueo.objects.create(evento=evento, motivo=motivo, evento_origen=origen)
+    bloqueo = Bloqueo.objects.create(evento=evento, motivo=motivo, evento_origen=origen, cierre=cierre)
     validar_inicio_bloqueo(fecha, hora_inicio)
     return bloqueo
 
 
 @transaction.atomic
-def liberar_bloqueo(actor, bloqueo_id, motivo):
+def liberar_bloqueo(actor, bloqueo_id, motivo, *, desde_cierre=False):
     bloqueo = Bloqueo.objects.select_related("evento").get(pk=bloqueo_id)
     turno = Turno.objects.select_for_update().get(pk=bloqueo.evento.turno_id)
     evento = Evento.objects.select_for_update().get(pk=bloqueo.evento_id)
     ahora = timezone.localtime()
+    inicio = timezone.make_aware(datetime.combine(turno.fecha, turno.hora_inicio))
+    if not desde_cierre and CierreMalTiempo.objects.filter(
+        sedes__canchas=turno.cancha_id, desde__lte=inicio, hasta__gt=inicio,
+    ).exists():
+        raise ConflictoReserva("El turno está cubierto por un cierre por mal tiempo. Revisá el cierre antes de liberarlo.")
     if evento.estado != Evento.Estado.PROGRAMADO:
         raise ConflictoReserva("Sólo se pueden liberar bloqueos programados.")
     if (turno.fecha, turno.hora_inicio) <= (ahora.date(), ahora.time()):

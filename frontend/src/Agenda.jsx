@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api } from './api.js'
 import { HistorialTurno } from './HistorialTurno.jsx'
 import { AccionesAgenda } from './AccionesAgenda.jsx'
-import { AccionesTurno, motivosBloqueo } from './AccionesTurno.jsx'
+import { AccionesTurno, etiquetasBloqueo } from './AccionesTurno.jsx'
 import { desplazarFecha, fechaValida, horaActual, hoy, importe, labelFecha } from './fechas.js'
 
 const inicioOperaciones = '2026-08-01'
@@ -197,7 +197,7 @@ export function Agenda({ usuario }) {
                         <span>{estadoTurno(celda)}</span>
                         {celda.tiene_historial && <span className="marca-historial" aria-hidden="true">↶</span>}
                         {celda.organizador && <small>{celda.organizador}</small>}
-                        {motivosBloqueo[celda.motivo] && <small>{motivosBloqueo[celda.motivo]}</small>}
+                        {etiquetasBloqueo[celda.motivo] && <small>{etiquetasBloqueo[celda.motivo]}</small>}
                       </button> : <span className="sin-turno" aria-label="Sin turno">—</span>}
                     </td>
                   })}
@@ -219,7 +219,7 @@ export function Agenda({ usuario }) {
             </div>
             {turno.organizador && <p>{turno.organizador}</p>}
             {turno.importe && <p>{importe(turno.importe)}</p>}
-            {turno.motivo && <p>{motivosBloqueo[turno.motivo]}</p>}
+            {turno.motivo && <p>{etiquetasBloqueo[turno.motivo]}</p>}
             {turno.observaciones && <p>{turno.observaciones}</p>}
             {turno.tiene_historial && <button className="accion" type="button"
               onClick={() => cambiarHistorial(true)}>Ver historial</button>}

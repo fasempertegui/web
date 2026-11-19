@@ -3,10 +3,11 @@ import { useForm } from 'react-hook-form'
 import { api } from './api.js'
 
 export const motivosBloqueo = {
-  clima_adverso: 'Clima adverso',
   torneo: 'Torneo',
   mantenimiento: 'Mantenimiento',
 }
+
+export const etiquetasBloqueo = { ...motivosBloqueo, clima_adverso: 'Mal tiempo' }
 
 export function AccionesTurno({ turno, canchaId, fecha, puedeBloquear, puedeCancelar, alGuardar }) {
   const [operacion, setOperacion] = useState(null)
